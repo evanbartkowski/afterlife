@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Afterlight: A Survival Story</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=2">
+</head>
+<body>
+  <section class="start-screen" id="startScreen" aria-labelledby="briefingTitle">
+    <div class="start-card">
+      <div class="eyebrow"><span class="pulse"></span> RECOVERED TRANSMISSION // 2094</div>
+      <h2 id="briefingTitle">BEFORE THE ASH</h2>
+      <p id="briefingText">The old world ended in fire, but the radiation kept changing it after the flames went out.</p>
+      <div class="briefing-progress"><span id="briefingProgress"></span></div>
+      <div class="name-field" id="nameField" hidden><label for="survivorName">YOUR NAME</label><input id="survivorName" maxlength="20" placeholder="Enter a name" autocomplete="off"><label class="difficulty-label">STARTING DIFFICULTY</label><div class="difficulty-buttons" id="startingDifficulty"></div></div>
+      <button class="start-button" id="briefingButton" type="button">NEXT TRANSMISSION</button>
+    </div>
+  </section>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark">A/</span><span>AFTERLIGHT</span></div>
+      <div class="chapter-label">FIELD LOG <span id="chapterNumber">01</span> // DAY <span id="headerDay">01</span></div>
+      <div class="top-actions"><button id="tutorialButton" class="top-button" type="button">TUTORIAL</button><button id="soundButton" class="top-button" type="button" aria-pressed="false">SOUND: OFF</button></div>
+    </header>
+
+    <section class="intro-panel" aria-labelledby="gameTitle">
+      <div class="eyebrow"><span class="pulse"></span> SIGNAL RECOVERED // 2094</div>
+      <div class="hero-header">
+        <h1 id="gameTitle">THE WORLD IS DEAD.<br><em>IT DIDN'T DIE QUIETLY.</em></h1>
+        <div class="soldier-mark" aria-label="Wounded soldier insignia">
+          <img src="media/ChatGPT%20Image%20Sep%205,%202026,%2007_43_59%20PM.png" alt="Afterlight wounded soldier insignia">
+        </div>
+      </div>
+      <p class="lede" id="openingQuote">The ash storms have quieted. Your water is running out. Every answer is a wager against the ruins, the radiation, and the things that learned to dream in the dark.</p>
+    </section>
+
+    <section class="control-strip" aria-label="Run controls">
+      <div><span class="status-label">DIFFICULTY</span><div class="difficulty-buttons" id="difficultyButtons"></div></div>
+      <div class="setting-readout"><span class="status-label">CURRENT REGION</span><strong id="regionValue">THE GREENBELT</strong></div>
+      <div class="setting-readout"><span class="status-label">ANOMALY</span><strong id="anomalyValue">LOW</strong></div>
+    </section>
+
+    <section class="status-grid" aria-label="Survival status">
+      <div class="status-card status-card--primary"><span class="status-label">SURVIVAL ODDS</span><strong id="oddsValue">62%</strong><div class="meter"><span id="oddsMeter"></span></div></div>
+      <div class="status-card"><span class="status-label">HEALTH</span><strong id="healthValue">78</strong><span class="status-note">VITALITY</span></div>
+      <div class="status-card"><span class="status-label">RAD EXPOSURE</span><strong id="radiationValue">12</strong><span class="status-note">MUTATION RISK</span></div>
+      <div class="status-card"><span class="status-label">WATER</span><strong id="suppliesValue">3</strong><span class="status-note">WATER RATIONS</span></div>
+      <div class="status-card"><span class="status-label">FOOD</span><strong id="foodValue">6</strong><span class="status-note">MEALS REMAINING</span></div>
+      <div class="status-card"><span class="status-label">LUCK</span><strong id="luckValue">50</strong><span class="status-note">THE WASTES REMEMBER</span></div>
+    </section>
+
+    <aside class="event-banner" id="eventBanner" hidden></aside>
+    <p class="status-message" id="statusMessage">FIELD NOTE // Pick a path. The wasteland is listening.</p>
+    <div class="world-readout" aria-label="World relationships and inventory">
+      <span class="world-entry world-entry--name"><span class="entry-label">NAME</span><strong id="nameValue">SURVIVOR</strong></span>
+      <span class="world-entry world-entry--base"><span class="entry-label">BASE</span><strong id="baseValue">NONE</strong></span>
+      <span class="world-entry world-entry--allies"><span class="entry-label">ALLIES</span><strong id="alliesValue">NONE</strong></span>
+      <span class="world-entry world-entry--lovers"><span class="entry-label">LOVERS</span><strong id="loversValue">NONE</strong></span>
+      <span class="world-entry world-entry--enemies"><span class="entry-label">ENEMIES</span><strong id="enemiesValue">NONE</strong></span>
+      <span class="world-entry world-entry--items"><span class="entry-label">ITEMS</span><strong id="itemsValue">NONE</strong></span>
+      <span class="world-entry world-entry--materials"><span class="entry-label">MATERIALS</span><strong id="materialsValue">0</strong></span>
+      <span class="world-entry world-entry--reputation"><span class="entry-label">REPUTATION</span><strong id="reputationValue">0</strong></span>
+      <span class="world-entry world-entry--morality"><span class="entry-label">MORALITY</span><strong id="moralityValue">HUMAN</strong></span>
+      <span class="world-entry world-entry--gold"><span class="entry-label">GOLD</span><strong id="crownsValue">25</strong></span>
+    </div>
+    <aside class="tutorial-panel" id="tutorialPanel" hidden>
+      <div class="tutorial-heading"><span>FIELD MANUAL // OPTIONAL</span><button id="closeTutorial" class="close-button" type="button" aria-label="Close tutorial">×</button></div>
+      <p>Survive until DAY 365. Choices spend time and change your odds, health, radiation, food, water, and luck. Food and water drain as you travel; forage or choose resource-rich paths before shortages damage your health. Difficulty changes your starting edge and daily drain.</p>
+    </aside>
+    <section class="story-panel" id="storyPanel" aria-live="polite">
+      <div class="story-meta"><span id="sceneType" class="scene-type">ENCOUNTER</span><span id="location" class="location-readout">OUTSKIRTS // SECTOR 7</span></div>
+      <h2 id="sceneTitle">A LIGHT IN THE DEAD RAIL YARD</h2>
+      <p id="sceneText">Your cracked radio catches a voice beneath the static. Someone is broadcasting from the old rail yard, offering shelter for anyone who can hear. The yard is two hours east. Between you and the signal: a minefield that nobody has bothered to map since the bombs fell.</p>
+      <div class="story-interlude" id="storyInterlude" hidden></div>
+      <p class="prompt" id="promptText">What do you do?</p>
+      <div class="choices" id="choices"></div>
+    </section>
+
+    <footer class="footer"><span id="logLine">LOG 01 // MAKE YOUR FIRST CALL</span><div class="footer-actions"><div class="contact-links"><span class="contact-name">EVAN BARTKOWSKI</span><a href="mailto:evan.bartkowski@icloud.com">EMAIL</a><a href="https://www.linkedin.com/in/evan-bartkowski-31274b299/" target="_blank" rel="noreferrer">LINKEDIN</a><a href="https://github.com/evanbartkowski" target="_blank" rel="noreferrer">GITHUB</a></div><button id="restartButton" class="restart-button" type="button">RESTART RUN <span>↻</span></button></div></footer>
+  </main>
+  <audio id="backgroundMusic" preload="auto" aria-hidden="true"></audio>
+  <script src="script.js"></script>
+</body>
+</html>
