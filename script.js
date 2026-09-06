@@ -614,14 +614,63 @@ function buildDynamicChoices() {
   return choices.slice(0, 4);
 }
 
+const feedbackStats = {
+  odds: ['oddsValue', 'Survival odds'], health: ['healthValue', 'Health'],
+  radiation: ['radiationValue', 'Radiation'], supplies: ['suppliesValue', 'Water'],
+  food: ['foodValue', 'Food'], luck: ['luckValue', 'Luck'],
+  materials: ['materialsValue', 'Materials'], reputation: ['reputationValue', 'Reputation'],
+  crowns: ['crownsValue', 'Gold'], evil: ['moralityValue', 'Corruption']
+};
+
+function captureOutcome() {
+  return JSON.parse(JSON.stringify(state));
+}
+
+function clearOutcomeFeedback() {
+  document.querySelectorAll('.stat-delta').forEach((element) => element.remove());
+  const summary = $('choiceOutcome');
+  if (summary) { summary.hidden = true; summary.textContent = ''; }
+}
+
+function showOutcomeFeedback(before) {
+  clearOutcomeFeedback();
+  const changes = [];
+  Object.entries(feedbackStats).forEach(([key, [id, label]]) => {
+    const delta = Number((state[key] - before[key]).toFixed(2));
+    if (!delta) return;
+    const signed = `${delta > 0 ? '+' : ''}${delta}`;
+    const favorable = (key === 'radiation' || key === 'evil') ? delta < 0 : delta > 0;
+    const badge = document.createElement('small');
+    badge.className = `stat-delta ${favorable ? 'delta-gain' : 'delta-loss'}`;
+    badge.textContent = signed;
+    badge.setAttribute('aria-label', `${label} ${signed}`);
+    $(id).appendChild(badge);
+    changes.push(`${label} ${signed}${key === 'odds' ? ' percentage points' : ''}`);
+  });
+  ['items', 'allies', 'lovers', 'enemies', 'spouses'].forEach((key) => {
+    state[key].filter((value) => !before[key].includes(value)).forEach((value) => changes.push(`+ ${key}: ${value}`));
+    before[key].filter((value) => !state[key].includes(value)).forEach((value) => changes.push(`- ${key}: ${value}`));
+  });
+  ['base', 'race'].forEach((key) => {
+    if (state[key] !== before[key]) changes.push(`${key}: ${before[key]} → ${state[key]}`);
+  });
+  const summary = $('choiceOutcome');
+  summary.textContent = `RESULT // ${changes.length ? changes.join(' · ') : 'No stat or inventory changes.'}`;
+  summary.hidden = false;
+}
+
+document.addEventListener('click', clearOutcomeFeedback, true);
+
 function handleDynamicChoice(choice) {
   if (!choice || !choice.apply) return;
+  const before = captureOutcome();
   choice.apply();
   if (state.sceneText) {
     $('sceneText').textContent = state.sceneText;
   }
   renderStats();
   renderWorldState();
+  showOutcomeFeedback(before);
   saveGame();
 }
 
@@ -854,8 +903,12 @@ function renderScenario() {
   $('choices').innerHTML = '';
 
   if (scene.event) {
+    const before = captureOutcome();
     applyEventScene(scene);
     const radiationResult = resolveRadiationThreshold();
+    renderStats();
+    renderWorldState();
+    showOutcomeFeedback(before);
     if (radiationResult.status === 'death') { showEnding(false); return; }
     showInlineContinue('The world shifts while you keep moving. The signal trembles, a flicker splitting the silence.');
     return;
@@ -966,6 +1019,7 @@ function choose(index) {
   const choiceList = state.route[state.scenario].choices;
   const choice = choiceList[index];
   if (!choice) return;
+  const before = captureOutcome();
   const mode = difficulties[state.difficulty];
   const beforeStats = { oddsValue: state.odds, healthValue: state.health, radiationValue: state.radiation, suppliesValue: state.supplies, foodValue: state.food, luckValue: state.luck };
   const luckSwing = Math.floor((Math.random() * 9) - 4) + Math.floor(state.luck / 25);
@@ -989,6 +1043,8 @@ function choose(index) {
   $('promptText').textContent = randomEvent ? 'EVENT INTERRUPTS THE ROAD...' : 'THE ROAD CONTINUES...';
   $('choices').innerHTML = '';
   renderStats();
+  renderWorldState();
+  showOutcomeFeedback(before);
   const shortageNote = needs.damage ? ` SHORTAGE DAMAGE // -${needs.damage} HEALTH.` : '';
   $('statusMessage').textContent = `FIELD NOTE // ${travelDays} DAY${travelDays === 1 ? '' : 'S'} ON THE ROAD. DAY ${state.day} / 365. ${state.supplies.toFixed(1)} WATER, ${state.food.toFixed(1)} FOOD, ${state.radiation.toFixed(1)} RAD, ${state.health} HEALTH.${shortageNote}`;
   saveGame();
