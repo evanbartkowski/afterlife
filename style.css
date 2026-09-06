@@ -268,3 +268,4 @@ h2 { min-height: 84px; margin: 25px 0 13px; max-width: 700px; font-size: clamp(2
 .delta-gain { color: var(--ink); }
 .delta-loss { color: var(--danger); }
 .choice-outcome { margin: 18px 0 0; padding: 12px 14px; border-left: 2px solid var(--cyan); background: rgba(119,244,255,.06); color: var(--bright); font: 12px/1.7 'DM Mono', monospace; overflow-wrap: anywhere; }
+.campaign-context { margin: 0 0 18px; color: var(--cyan); font: 11px/1.7 'DM Mono', monospace; letter-spacing: .04em; }

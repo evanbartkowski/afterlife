@@ -229,6 +229,7 @@ function clamp(value, min, max) {
 
 function defaultState() {
   return {
+    story: { seen: [] },
     difficulty: 'survivor',
     scenario: 0,
     odds: 60,
@@ -525,14 +526,14 @@ function buildDynamicChoices() {
       state.food += 2;
       state.supplies += 2;
       state.odds = clamp(state.odds - 2, 0, 99);
-      state.day = Math.min(365, state.day + 1);
+      state.day = Math.min(364, state.day + 1);
       state.region = Math.min(regions.length - 1, Math.floor(state.day / 80));
       state.previousStats = beforeStats;
       state.sceneText = 'You leave the road to search the ruins. The water is cloudy and the food is stale, but both are better than an empty pack.';
       recordEvent('Foraging', 'You recovered food and water from a forgotten supply cache.');
     }
   });
-  getAliveAdultNpcs().forEach((npc) => {
+  getAliveAdultNpcs().filter((npc) => !state.story || (npc.id === 'mara' && state.story.metMara && state.story.mara !== 'exiled' && state.story.bond === 'romance')).forEach((npc) => {
     const rel = getRelationship(npc.id);
     if ((rel.attraction || 0) >= 35 && (rel.friendship || 0) >= 20) {
       choices.push({
@@ -676,21 +677,7 @@ function handleDynamicChoice(choice) {
 
 function vary(value, amount) { return Math.max(0, value + Math.floor(Math.random() * (amount * 2 + 1)) - amount); }
 
-function createRoute(difficultyKey = 'survivor', mutant = false) {
-  const mode = difficulties[difficultyKey] || difficulties.survivor;
-  const questBlocks = bonusScenarios.reduce((blocks, scene) => { if (!scene.chain) { blocks.push([scene]); return blocks; } const block = blocks.find((entry) => entry[0]?.chain === scene.chain); if (block) block.push(scene); else blocks.push([scene]); return blocks; }, []);
-  const singleScenes = scenarios.slice(0, -1).map((scene) => [scene]);
-  const exclusiveBlocks = difficultyScenes[difficultyKey].map((scene) => [scene]);
-  const allBlocks = [...singleScenes, ...questBlocks, ...eventScenes.map((scene) => [scene]), ...exclusiveBlocks];
-  const favoredBlocks = allBlocks.filter(([scene]) => mode.preferredTypes.includes(scene.type) || mode.preferredChains.includes(scene.chain));
-  const repeatedBlocks = favoredBlocks.slice(0, mode.repeatBlocks);
-  const weightedBlocks = [...allBlocks, ...repeatedBlocks].sort((left, right) => {
-    const leftFavored = mode.preferredTypes.includes(left[0].type) || mode.preferredChains.includes(left[0].chain);
-    const rightFavored = mode.preferredTypes.includes(right[0].type) || mode.preferredChains.includes(right[0].chain);
-    return (rightFavored ? 1 : 0) - (leftFavored ? 1 : 0) || Math.random() - 0.5;
-  });
-  return [...introScenes, ...weightedBlocks.flat(), lateRaceScene, ...(mutant ? mutantScenes : []), scenarios[scenarios.length - 1]];
-}
+function createRoute() { return createCampaignRoute(); }
 
 function renderWorldState() {
   $('nameValue').textContent = state.playerName;
@@ -702,6 +689,7 @@ function renderWorldState() {
     const valueList = Array.isArray(values) ? values : [];
     if (valueList.length > 1) {
       const nextSelect = document.createElement('select');
+      nextSelect.id = id;
       nextSelect.className = 'world-select';
       nextSelect.setAttribute('aria-label', id);
       valueList.forEach((entry) => {
@@ -763,14 +751,14 @@ function resolveRadiationThreshold() {
   state.radiation = 42;
   state.health = clamp(state.health + 12, 1, 100);
   state.odds = clamp(state.odds - 8, 0, 99);
-  state.route = createRoute(state.difficulty, true);
-  state.scenario = Math.min(state.scenario, state.route.length - 1);
+  // Mutation changes the survivor without restarting the campaign.
   return { status: 'mutation', message: 'The radiation remakes you instead of killing you. You live as a mutant: stronger, hungrier, and harder for the world to trust.' };
 }
 
 function setDifficulty(key) {
   if (state.started) return;
   const mode = difficulties[key];
+  state.story = { seen: [] };
   state.difficulty = key;
   state.odds = vary(mode.odds, 5);
   state.health = vary(mode.health, 6);
@@ -878,7 +866,8 @@ function renderInterlude() {
 }
 
 function renderScenario() {
-  const scene = state.route[state.scenario] || scenarios[0];
+  const scene = resolveCampaignScene(state.route[state.scenario] || { campaignId: 'morning' });
+  state.route[state.scenario] = scene;
   const [region, anomaly] = regions[state.region];
   $('chapterNumber').textContent = String(state.scenario + 1).padStart(2, '0');
   $('headerDay').textContent = String(state.day).padStart(3, '0');
@@ -902,6 +891,12 @@ function renderScenario() {
   renderWorldState();
   $('choices').innerHTML = '';
 
+  renderCampaignContext(scene);
+  if (scene.campaignId) {
+    $('storyInterlude').hidden = true;
+    if (renderCampaignBeat(scene)) return;
+  }
+
   if (scene.event) {
     const before = captureOutcome();
     applyEventScene(scene);
@@ -910,12 +905,12 @@ function renderScenario() {
     renderWorldState();
     showOutcomeFeedback(before);
     if (radiationResult.status === 'death') { showEnding(false); return; }
-    showInlineContinue('The world shifts while you keep moving. The signal trembles, a flicker splitting the silence.');
+    showInlineContinue(scene.text);
     return;
   }
 
   const staticChoices = scene.choices || [];
-  const dynamicChoiceSet = buildDynamicChoices();
+  const dynamicChoiceSet = scene.campaignId ? [] : buildDynamicChoices();
   const allChoices = [...staticChoices, ...dynamicChoiceSet];
   allChoices.forEach((choice, index) => {
     const button = document.createElement('button');
@@ -955,11 +950,20 @@ function applyEventScene(scene) {
   renderWorldState();
 }
 
-function nextScene() { state.scenario += 1; while (state.route[state.scenario]?.lateOnly && state.day < 240) state.scenario += 1; if (state.scenario >= state.route.length) { state.route = createRoute(state.difficulty); state.scenario = 0; } state.lastEvent = false; $('eventBanner').hidden = true; renderScenario(); }
-
+function nextScene() {
+  if (state.scenario >= state.route.length - 1) return;
+  state.scenario += 1;
+  state.lastEvent = false;
+  $('eventBanner').hidden = true;
+  $('storyPanel').scrollTop = 0;
+  renderScenario();
+}
 function applyStoryEffects(choice) {
   const effects = choice[6];
   if (!effects) return;
+  if (effects.story) Object.assign(state.story, effects.story);
+  if (effects.removeLover) state.lovers = state.lovers.filter(name => name !== effects.removeLover);
+  if (effects.removeAlly) state.allies = state.allies.filter(name => name !== effects.removeAlly);
   ['ally', 'friend', 'lover', 'enemy', 'item', 'sin'].forEach((key) => {
     if (effects[key]) {
       const target = key === 'ally' || key === 'friend' ? state.allies : key === 'lover' ? state.lovers : key === 'enemy' ? state.enemies : key === 'item' ? state.items : state.sins;
@@ -1023,19 +1027,19 @@ function choose(index) {
   const mode = difficulties[state.difficulty];
   const beforeStats = { oddsValue: state.odds, healthValue: state.health, radiationValue: state.radiation, suppliesValue: state.supplies, foodValue: state.food, luckValue: state.luck };
   const luckSwing = Math.floor((Math.random() * 9) - 4) + Math.floor(state.luck / 25);
-  const travelDays = Math.random() < 0.2 ? 2 + Math.floor(Math.random() * 3) : 1;
+  const travelDays = state.route[state.scenario].campaignId ? 1 : (Math.random() < 0.2 ? 2 + Math.floor(Math.random() * 3) : 1);
   state.odds = Math.max(0, Math.min(99, state.odds + choice[1] + luckSwing));
   state.supplies = Math.max(0, state.supplies + choice[2] - mode.drain);
   state.health = Math.max(0, Math.min(100, state.health + choice[3]));
   state.radiation = Math.max(0, Math.min(100, state.radiation + choice[4]));
   state.luck = Math.max(0, Math.min(100, state.luck + Math.floor(Math.random() * 7) - 2));
-  state.day = Math.min(365, state.day + travelDays);
+  state.day = Math.min(364, state.day + travelDays);
   state.region = Math.min(regions.length - 1, Math.floor(state.day / 80));
   state.previousStats = beforeStats;
   applyStoryEffects(choice);
   const needs = applyTravelNeeds(travelDays);
   document.querySelectorAll('.choice').forEach((button) => { button.disabled = true; });
-  const randomEvent = maybeEvent();
+  const randomEvent = state.route[state.scenario].campaignId ? null : maybeEvent();
   const radiationResult = resolveRadiationThreshold();
   const currentScene = state.route[state.scenario];
   const choiceResult = personalizeNarrative(currentScene, choice[5]);
@@ -1046,10 +1050,10 @@ function choose(index) {
   renderWorldState();
   showOutcomeFeedback(before);
   const shortageNote = needs.damage ? ` SHORTAGE DAMAGE // -${needs.damage} HEALTH.` : '';
-  $('statusMessage').textContent = `FIELD NOTE // ${travelDays} DAY${travelDays === 1 ? '' : 'S'} ON THE ROAD. DAY ${state.day} / 365. ${state.supplies.toFixed(1)} WATER, ${state.food.toFixed(1)} FOOD, ${state.radiation.toFixed(1)} RAD, ${state.health} HEALTH.${shortageNote}`;
+  $('statusMessage').textContent = `FIELD NOTE // ${travelDays} DAY${travelDays === 1 ? '' : 'S'} ${currentScene.campaignId ? 'IN THE SETTLEMENT' : 'ON THE ROAD'}. DAY ${state.day} / 365. ${state.supplies.toFixed(1)} WATER, ${state.food.toFixed(1)} FOOD, ${state.radiation.toFixed(1)} RAD, ${state.health} HEALTH.${shortageNote}`;
   saveGame();
   if (radiationResult.status === 'death' || state.health <= 0) { showEnding(false); return; }
-  if (state.day >= 365) { showEnding(true); return; }
+  // The campaign resolves at its epilogue, not in the middle of a choice.
   const mutationNote = radiationResult.status === 'mutation' ? `\n\n${radiationResult.message}` : '';
   showInlineContinue(randomEvent ? `${choiceResult}\n\n${randomEvent[0]}\n${randomEvent[1]}${mutationNote}` : `${choiceResult}${mutationNote}`);
 }
@@ -1134,9 +1138,9 @@ function toggleTutorial(visible) {
 
 const briefingSlides = [
   ['BEFORE THE ASH', 'The old world ended in fire, but the radiation kept changing it after the flames went out.'],
-  ['THE LONG SILENCE', 'You were found beneath a collapsed relay station with no memory of the last three days. Your pack was empty, and the ash storms had erased every trail behind you.'],
+  ['THE LONG SILENCE', 'You were found beneath a collapsed relay station with no memory of the last three days. A brass key remained in your coat. Your own voice on a damaged recording warned you not to let Haven switch on AFTERLIFE.'],
   ['WHAT REMAINS', 'Settlements trade in water, bullets, old promises, and stranger things. Elves, mutants, zombies, and ordinary people all want a piece of tomorrow.'],
-  ['YOUR FIELD LOG', 'Before you enter the wastes, tell the field log what to call you and choose a starting difficulty. The first days are simple. They will not stay that way.']
+  ['YOUR FIELD LOG', 'Before you enter the wastes, tell the field log what to call you and choose a starting difficulty. Follow the signal to Haven. Your choices will shape who trusts you, who stays, and who survives the coming winter.']
 ];
 let briefingStep = 0;
 
