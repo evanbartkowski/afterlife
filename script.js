@@ -1133,7 +1133,10 @@ function toggleSound() {
 }
 
 function toggleTutorial(visible) {
-  $('tutorialPanel').hidden = !visible;
+  const panel = $('tutorialPanel');
+  if (visible && !panel.open) panel.showModal();
+  else if (!visible && panel.open) panel.close();
+  $('tutorialButton').setAttribute('aria-expanded', String(panel.open));
 }
 
 const briefingSlides = [
@@ -1171,8 +1174,12 @@ function finishBriefing() {
 $('briefingButton').addEventListener('click', () => { if (briefingStep < briefingSlides.length - 1) { briefingStep += 1; renderBriefing(); } else finishBriefing(); });
 $('restartButton').addEventListener('click', restart);
 $('soundButton').addEventListener('click', toggleSound);
-$('tutorialButton').addEventListener('click', () => toggleTutorial($('tutorialPanel').hidden));
+$('tutorialButton').addEventListener('click', () => toggleTutorial(!$('tutorialPanel').open));
 $('closeTutorial').addEventListener('click', () => toggleTutorial(false));
+$('tutorialPanel').addEventListener('close', () => {
+  $('tutorialButton').setAttribute('aria-expanded', 'false');
+  $('tutorialButton').focus();
+});
 renderBriefing();
 setDifficulty(state.difficulty);
 
