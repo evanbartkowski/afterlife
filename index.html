@@ -71,9 +71,84 @@
     </div>
     <dialog class="tutorial-panel" id="tutorialPanel" aria-labelledby="tutorialTitle">
       <div class="tutorial-heading"><span id="tutorialTitle">FIELD MANUAL // HOW TO PLAY</span><button id="closeTutorial" class="close-button" type="button" aria-label="Close tutorial">×</button></div>
-      <p>Follow radio messages from Stella and verified clues to reach Haven by DAY 100. Shelter stops advance the journey and provide rest and supplies. Road encounters vary between runs, while your choices determine your route and ending. Choices spend time and change your odds, health, radiation, food, water, and luck. Food and water drain as you travel; forage or choose resource-rich paths before shortages damage your health. Difficulty changes your starting edge and daily drain.</p>
-      <p>Read each scene, choose an action, then review its result before selecting Continue onward. Signed amounts next to your stats show gains and losses until your next click.</p>
-      <p>Health reaching zero ends the run. Relationships and major decisions shape the ending. Romance is optional. Restart Run starts over; refreshing the page also resets your current progress.</p>
+      <p class="tutorial-intro">Your goal is to reach Haven by day 100. Follow Stella?s radio clues, protect your health, and decide who you want to become along the way. Open any section below when you need it. No ending spoilers.</p>
+      <details open>
+        <summary>1. Your first steps</summary>
+        <ol>
+          <li>Read the current scene and the objective above it.</li>
+          <li>Choose an action. Some scenes simply tell you what happens and offer Continue onward.</li>
+          <li>Read the outcome before clicking again. Your decision may change supplies, relationships, or later events.</li>
+          <li>Check your health, food, water, and active base benefit, then continue.</li>
+        </ol>
+        <p>There is no real-time countdown. Take your time reading. Scroll inside the story panel for longer scenes. You can use Tab to move between buttons and Enter or Space to select them.</p>
+      </details>
+      <details>
+        <summary>2. Days, chapters, and difficulty</summary>
+        <p>The journey follows a fixed story with different encounters between chapters. Decisions can advance time; certain conversations and shelter decisions do not. Shelter chapters move the calendar forward through travel and recovery, so you do not play 100 separate daily turns.</p>
+        <p>Beginner provides a gentler start. Survivor, Wasteland, and Impossible generally give you fewer reserves, higher water costs, and faster radiation buildup. Difficulty locks when you begin. Restart to choose another.</p>
+        <p>Reaching Haven resolves the journey on day 100. Your choices determine your companions, relationships, and life there. Health reaching zero can end the run before arrival.</p>
+      </details>
+      <details>
+        <summary>3. Food, water, and staying alive</summary>
+        <p><strong>Health:</strong> injuries and shortages reduce it. Zero means death. Helpful choices and shelter stops can restore it.</p>
+        <p><strong>Food and water:</strong> balances use whole or half-rations, such as 3 or 2.5. A normal human uses 1 food and 0.5 water per travel day, before base benefits. Time-consuming choices also spend water according to difficulty: 1 on Beginner, 2 on Survivor, 3 on Wasteland, and 4 on Impossible.</p>
+        <p>If your food or water is empty when travel needs are checked, each shortage deals 2 health damage per travel day. Both shortages together deal 4 per day. A reward can be smaller than the total cost of the journey.</p>
+        <p>Forage when that option appears on an ordinary encounter: it adds 2 food and 2 water, costs 2 survival odds, and advances one day. The Moss Caravan adds another food. Choosing it replaces that encounter?s other action.</p>
+        <p>Shelter chapters normally restore up to 12 health, remove up to 12 radiation, and bring food and water to at least 10 and 12. Base benefits can improve this. These supplies are granted once per shelter scene.</p>
+      </details>
+      <details>
+        <summary>4. Radiation, luck, and stat feedback</summary>
+        <p><strong>Radiation:</strong> rises during travel and some events. At the first 100 exposure, you have a 50% chance of dying and a 50% chance of becoming a mutant. Mutation increases hunger and thirst but keeps your story progress.</p>
+        <p><strong>Luck:</strong> influences changes to survival odds. Choices and events can also change luck itself.</p>
+        <p><strong>Survival odds:</strong> a changing indicator of your situation, not a literal prediction or a separate instant-death roll. Your health is the immediate survival limit.</p>
+        <p>Signed badges beside stats show actual changes: +2, -1, or -0.5. Green means favorable; red means unfavorable. Lower radiation and higher humanity are favorable. Badges and newly gained item names disappear on your next click.</p>
+        <p>Some decisions also show an aftermath paragraph explaining new allies, enemies, relationships, or other consequences. The item line lists only newly gained items.</p>
+      </details>
+      <details>
+        <summary>5. Radio messages, clues, and inventory</summary>
+        <p>Stella guides you through written radio transmissions. The radio log keeps the latest message visible; route notes preserve discovered clues. Some messages are unverified. Compare their directions with landmarks and earlier instructions before trusting them.</p>
+        <p>Choosing a route changes the quest you experience. Both main routes can lead to Haven, but the people you help and the risks you take differ.</p>
+        <p>Items record discoveries and rewards. Some choices require specific items and remain disabled without them. When a readout contains several items or people, use its dropdown to inspect the list. Gold and materials are tracked resources; there is no general shop or crafting menu.</p>
+      </details>
+      <details>
+        <summary>6. Bases and their active benefits</summary>
+        <p>Your base is a support network that moves equipment and maintains shelters along the route. Choose one early and change it at the weather station. Only your current base grants benefits; changing bases does not stack them.</p>
+        <ul>
+          <li><strong>Moss Caravan:</strong> +1 food when foraging; shelter food reserves refill to at least 12.</li>
+          <li><strong>Warden Outposts:</strong> travel water use falls by 0.5 per day and radiation gain by 0.25 per day, each to a minimum of zero. Difficulty-based choice costs still apply.</li>
+          <li><strong>Moon Shrines:</strong> shelter recovery gains 6 extra health; food use falls by 0.5 per day, to a minimum of 0.5.</li>
+        </ul>
+        <p>The active benefit is shown beneath the radio message. Choose the network that supports the resources you struggle to keep.</p>
+      </details>
+      <details>
+        <summary>7. Changing race</summary>
+        <p>The moon-pool quest offers a choice. You can remain human; transformation is optional.</p>
+        <ul>
+          <li><strong>Human:</strong> standard survival rules.</li>
+          <li><strong>Moon elf:</strong> radiation gain falls by 0.25 per travel day. This can combine with the Warden benefit, but never creates negative exposure gain.</li>
+          <li><strong>Ash revenant:</strong> direct choice wounds are halved, rounded down; food consumption rises by 0.5 per day. This protection does not halve shortage damage.</li>
+        </ul>
+        <p>Your race and your humanity are separate. Changing your body does not make you cruel. Radiation can still trigger mutation later.</p>
+      </details>
+      <details>
+        <summary>8. Humanity, crimes, and consequences</summary>
+        <p>Humanity starts at 100 and measures compassion, not species. Exploitation, robbery, and harming innocent people can lower it. Not every illegal act has the same moral consequences: who benefits and who suffers matters.</p>
+        <p>New enemies can follow your story through later encounters. Restitution may restore some humanity, but does not automatically remove enemies or repair a broken romance.</p>
+        <p>You may gain supplies from a cruel choice and still face its consequences later. Haven remains a sanctuary, but the people you hurt also have a voice there.</p>
+      </details>
+      <details>
+        <summary>9. Allies, friendship, and romance</summary>
+        <p>Stella, Lyria, and Nyx have distinct relationship paths. Helping someone may build an alliance; friendship and romance require their own choices. Rescue never creates a romantic obligation.</p>
+        <p>Stella?s romance requires both expressed interest and enough trust. Lyria?s choices depend on how you treated her. You can choose friendship, keep your distance, or pursue an available romance.</p>
+        <p>Romance is exclusive in this version. Choosing another partner ends your earlier commitment openly. Other characters can remain friends. Betrayal may break a relationship, and an apology does not guarantee it returns.</p>
+      </details>
+      <details>
+        <summary>10. Controls, progress, and a useful habit</summary>
+        <p><strong>Sound:</strong> toggles background music. Radio messages are text, not voiced audio.</p>
+        <p><strong>Tutorial:</strong> opens this manual without advancing the journey. Close it with ? or Escape to return to the game.</p>
+        <p><strong>Restart Run:</strong> begins again with a new survivor. Refreshing or reopening the page also resets progress in the current version. Keep the page open to continue the same run.</p>
+        <p>Before continuing, ask: Do I have food and water? What is my base helping with? What did this choice change for someone else? The game rewards paying attention to the people as well as the numbers.</p>
+      </details>
     </dialog>
     <section class="story-panel" id="storyPanel" aria-live="polite">
       <p class="campaign-context" id="campaignContext"></p>

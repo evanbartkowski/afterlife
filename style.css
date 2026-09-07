@@ -284,3 +284,13 @@ h2 { min-height: 84px; margin: 25px 0 13px; max-width: 700px; font-size: clamp(2
 #routeClues { margin-top: 8px; color: var(--dim); }
 
 .decision-aftermath { padding: 12px 14px; border-left: 2px solid var(--amber); color: var(--bright); background: rgba(255,209,102,.06); font: 12px/1.7 'DM Mono', monospace; }
+
+.tutorial-panel .tutorial-heading { position: sticky; top: -16px; z-index: 1; padding: 12px 0; background: #101b14; border-bottom: 1px solid var(--line); }
+.tutorial-panel .close-button { flex: 0 0 30px; width: 30px; height: 30px; }
+.tutorial-panel details { margin-top: 14px; border: 1px solid var(--line); padding: 12px 14px; }
+.tutorial-panel summary { cursor: pointer; color: var(--bright); font-weight: 600; }
+.tutorial-panel summary:focus-visible { outline: 2px solid var(--cyan); outline-offset: 5px; }
+.tutorial-panel details[open] summary { padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+.tutorial-panel strong { color: var(--bright); }
+.tutorial-panel li { margin-top: 8px; }
+.tutorial-panel ul, .tutorial-panel ol { padding-left: 22px; }
