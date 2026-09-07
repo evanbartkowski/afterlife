@@ -232,6 +232,7 @@ function defaultState() {
   return {
     story: { seen: [], clues: [] },
     runEnded: false,
+    matureContent: false,
     difficulty: 'survivor',
     scenario: 0,
     odds: 60,
@@ -344,6 +345,7 @@ function saveGame() {
   try {
     const saveData = JSON.stringify({
       ...state,
+      route: state.route.map(({campaignId,calendarDay,expedition,encounter,region,act,objective,dispatch}) => ({campaignId,calendarDay,expedition,encounter,region,act,objective,dispatch})),
       audio: null,
       previousStats: null,
       started: true,
@@ -528,14 +530,14 @@ function buildDynamicChoices() {
       state.food += 2 + (activeBase().forage || 0);
       state.supplies += 2;
       state.odds = clamp(state.odds - 2, 0, 99);
-      state.day = Math.min(99, state.day + 1);
+      // This action occupies the current day.
       state.region = Math.min(regions.length - 1, Math.floor(state.day / 80));
       state.previousStats = beforeStats;
       state.sceneText = 'You leave the road to search the ruins. The water is cloudy and the food is stale, but both are better than an empty pack.';
       recordEvent('Foraging', 'You recovered food and water from a forgotten supply cache.');
     }
   });
-  getAliveAdultNpcs().filter((npc) => !state.story || (npc.id === 'stella' && state.day >= 100 && state.story.bond === 'romance')).forEach((npc) => {
+  getAliveAdultNpcs().filter((npc) => !state.story || (npc.id === 'stella' && state.day >= 365 && state.story.bond === 'romance')).forEach((npc) => {
     const rel = getRelationship(npc.id);
     if ((rel.attraction || 0) >= 35 && (rel.friendship || 0) >= 20) {
       choices.push({
@@ -626,7 +628,8 @@ const feedbackStats = {
 };
 
 function captureOutcome() {
-  return JSON.parse(JSON.stringify(state));
+  const {route, audio, npcRegistry, ...snapshot} = state;
+  return JSON.parse(JSON.stringify(snapshot));
 }
 
 function clearOutcomeFeedback() {
@@ -732,7 +735,7 @@ function applyTravelNeeds(travelDays) {
   state.radiation = clamp(state.radiation + radiationDrift * travelDays, 0, 100);
   const foodShortage = foodBefore <= 0;
   const waterShortage = waterBefore <= 0;
-  const damage = (foodShortage ? 2 : 0) + (waterShortage ? 2 : 0);
+  const damage = (foodShortage ? 3 : 0) + (waterShortage ? 3 : 0);
   if (damage) state.health = Math.max(0, state.health - damage * travelDays);
   return { foodShortage, waterShortage, damage: damage * travelDays, radiationDrift: radiationDrift * travelDays };
 }
@@ -797,7 +800,7 @@ function setDifficulty(key) {
   state.deadNPCs = [];
   state.eventHistory = [];
   $('eventBanner').hidden = true;
-  $('statusMessage').textContent = `FIELD NOTE // ${mode.label} RUN INITIALIZED. REACH HAVEN BY DAY 100.`;
+  $('statusMessage').textContent = `FIELD NOTE // ${mode.label} RUN INITIALIZED. REACH HAVEN BY DAY 365.`;
   renderScenario();
 }
 
@@ -833,7 +836,8 @@ function showInlineContinue(text) {
   next.className = 'choice';
   next.type = 'button';
   next.textContent = 'Continue onward';
-  next.addEventListener('click', nextScene);
+  const sourceScene = state.scenario;
+  next.addEventListener('click', () => { if (state.scenario === sourceScene) nextScene(); });
   $('choices').appendChild(next);
 }
 
@@ -865,9 +869,11 @@ function renderInterlude() {
 }
 
 function renderScenario() {
+  state.choiceResolved = false;
   $('decisionAftermath').hidden = true;
-  const scene = resolveCampaignScene(state.route[state.scenario] || { campaignId: 'morning' });
+  const scene = filterMatureScene(resolveCampaignScene(state.route[state.scenario] || { campaignId: 'morning' }));
   state.route[state.scenario] = scene;
+  state.day = scene.calendarDay || state.day;
   const [region, anomaly] = regions[state.region];
   $('chapterNumber').textContent = String(state.scenario + 1).padStart(2, '0');
   $('headerDay').textContent = String(state.day).padStart(3, '0');
@@ -910,7 +916,7 @@ function renderScenario() {
   }
 
   const staticChoices = scene.choices || [];
-  const dynamicChoiceSet = scene.campaignId ? [] : buildDynamicChoices();
+  const dynamicChoiceSet = (scene.campaignId || scene.expedition) ? [] : buildDynamicChoices();
   const allChoices = [...staticChoices, ...dynamicChoiceSet];
   allChoices.forEach((choice, index) => {
     const button = document.createElement('button');
@@ -1018,13 +1024,13 @@ function renderStats() {
 }
 
 function maybeEvent() {
-  if (state.lastEvent || state.eventCooldown > 0 || Math.random() > 0.2) {
+  if (state.lastEvent || state.eventCooldown > 0 || Math.random() > 0.35) {
     state.eventCooldown = Math.max(0, state.eventCooldown - 1);
     return null;
   }
   const event = events[Math.floor(Math.random() * events.length)];
   state.lastEvent = true;
-  state.eventCooldown = 4 + Math.floor(Math.random() * 7);
+  state.eventCooldown = 1 + Math.floor(Math.random() * 3);
   state.odds = Math.max(0, Math.min(99, state.odds + event[2]));
   state.supplies = Math.max(0, state.supplies + event[3]);
   state.luck = Math.max(0, Math.min(100, state.luck + event[4]));
@@ -1034,10 +1040,11 @@ function maybeEvent() {
 }
 
 function choose(index) {
-  if (state.runEnded) return;
+  if (state.runEnded || state.choiceResolved) return;
   const choiceList = state.route[state.scenario].choices;
   const choice = choiceList[index];
   if (!choice) return;
+  state.choiceResolved = true;
   const before = captureOutcome();
   if (choice[6]?.death) {
     state.health = 0;
@@ -1051,22 +1058,23 @@ function choose(index) {
   const beforeStats = { oddsValue: state.odds, healthValue: state.health, radiationValue: state.radiation, suppliesValue: state.supplies, foodValue: state.food, luckValue: state.luck };
   const luckSwing = Math.floor((Math.random() * 9) - 4) + Math.floor(state.luck / 25);
   const shelterDecision = ['wayhouse','connection','transformation','lyria_night','nyx_night','newbase','promise','lyria_lantern','hollow_broadcast','nyx_rooftop','bone_procession','stella_evening'].includes(state.route[state.scenario].campaignId);
-  const travelDays = shelterDecision ? 0 : state.route[state.scenario].campaignId ? 1 : (Math.random() < 0.2 ? 2 + Math.floor(Math.random() * 3) : 1);
+  const travelDays = shelterDecision ? 0 : state.route[state.scenario].campaignId ? 1 : 1;
   state.odds = Math.max(0, Math.min(99, state.odds + choice[1] + luckSwing));
   state.supplies = Math.max(0, state.supplies + choice[2] - (travelDays ? mode.drain : 0));
   state.health = Math.max(0, Math.min(100, state.health + (state.race === 'ASH REVENANT' && choice[3] < 0 ? Math.ceil(choice[3] / 2) : choice[3])));
   state.radiation = Math.max(0, Math.min(100, state.radiation + choice[4]));
   state.luck = Math.max(0, Math.min(100, state.luck + Math.floor(Math.random() * 7) - 2));
-  state.day = Math.min(99, state.day + travelDays);
+  // Continue advances to the following calendar day.
   state.region = Math.min(regions.length - 1, Math.floor(state.day / 80));
   state.previousStats = beforeStats;
   applyStoryEffects(choice);
   const needs = applyTravelNeeds(travelDays);
   document.querySelectorAll('.choice').forEach((button) => { button.disabled = true; });
   const randomEvent = state.route[state.scenario].campaignId ? null : maybeEvent();
-  const radiationResult = resolveRadiationThreshold();
+  const riskNote = resolveTravelRisk(choice);
+  const radiationResult = state.health > 0 ? resolveRadiationThreshold() : {status: 'death'};
   const currentScene = state.route[state.scenario];
-  const choiceResult = personalizeNarrative(currentScene, choice[5]);
+  const choiceResult = personalizeNarrative(currentScene, choice[5]) + riskNote;
   $('sceneText').textContent = randomEvent ? `${choiceResult}\n\n${randomEvent[0]}\n${randomEvent[1]}` : choiceResult;
   $('promptText').textContent = randomEvent ? 'EVENT INTERRUPTS THE ROAD...' : 'THE ROAD CONTINUES...';
   $('choices').innerHTML = '';
@@ -1075,19 +1083,19 @@ function choose(index) {
   showOutcomeFeedback(before);
   renderCampaignContext(currentScene);
   const shortageNote = needs.damage ? ` SHORTAGE DAMAGE // -${needs.damage} HEALTH.` : '';
-  $('statusMessage').textContent = `FIELD NOTE // ${travelDays} DAY${travelDays === 1 ? '' : 'S'} ON THE ROAD. DAY ${state.day} / 100. ${formatRations(state.supplies)} WATER, ${formatRations(state.food)} FOOD, ${state.radiation.toFixed(1)} RAD, ${state.health} HEALTH.${shortageNote}`;
+  $('statusMessage').textContent = `FIELD NOTE // ${travelDays ? '1 DAY OF TRAVEL' : 'REST AND CONVERSATION'}. DAY ${state.day} / 365. ${formatRations(state.supplies)} WATER, ${formatRations(state.food)} FOOD, ${state.radiation.toFixed(1)} RAD, ${state.health} HEALTH.${shortageNote}`;
   saveGame();
-  if (radiationResult.status === 'death' || state.health <= 0) { showEnding(false); return; }
+  if (radiationResult.status === 'death' || state.health <= 0) { showEnding(false, {title: riskNote ? 'THE SEARCH THAT COST EVERYTHING' : 'THE ROAD TAKES ITS DUE', text: choiceResult + (radiationResult.message ? '\n\n' + radiationResult.message : '')}); return; }
   // The campaign resolves at its epilogue, not in the middle of a choice.
   showDecisionAftermath(before);
   const mutationNote = radiationResult.status === 'mutation' ? `\n\n${radiationResult.message}` : '';
   showInlineContinue(randomEvent ? `${choiceResult}\n\n${randomEvent[0]}\n${randomEvent[1]}${mutationNote}` : `${choiceResult}${mutationNote}`);
 }
 
-function showEnding(reached100 = false, death = null) {
+function showEnding(reached365 = false, death = null) {
   state.runEnded = true;
-  const survived = state.health > 0 && reached100;
-  $('sceneTitle').textContent = survived ? 'DAY 100 // WELCOME TO HAVEN' : 'YOU DIED IN THE AFTERLIGHT';
+  const survived = state.health > 0 && reached365;
+  $('sceneTitle').textContent = survived ? 'DAY 365 // WELCOME TO HAVEN' : 'YOU DIED IN THE AFTERLIGHT';
   $('sceneText').textContent = survived ? 'The gates of Haven open. Clean water, a warm room, and a peaceful valley wait beyond them. For the first time since the apocalypse, you can sleep safely.' : 'The road continues without you. Hunger, thirst, or the wounds you carried finally became heavier than your will to move.';
   if (!survived && death) {
     $('sceneTitle').textContent = death.title;
@@ -1114,7 +1122,9 @@ function showEnding(reached100 = false, death = null) {
 
 function restart() {
   localStorage.removeItem('afterlight-save-v2');
+  const matureContent = state.matureContent;
   Object.assign(state, defaultState());
+  state.matureContent = matureContent;
   briefingStep = 0;
   $('survivorName').value = '';
   $('eventBanner').hidden = true;
@@ -1190,7 +1200,7 @@ function showDecisionAftermath(before) {
 
 const briefingSlides = [
   ['BEFORE THE ASH', 'The old world ended in fire, but the radiation kept changing it after the flames went out.'],
-  ['THE LONG SILENCE', 'Your last shelter is gone. On a damaged radio, a woman named Stella promises that Haven is real: clean water, gardens, and a place to sleep safely. You have 100 days to follow her clues through the mountains.'],
+  ['THE LONG SILENCE', 'Your last shelter is gone. On a damaged radio, a woman named Stella promises that Haven is real: clean water, gardens, and a place to sleep safely. You have 365 days to follow her clues through the mountains.'],
   ['WHAT REMAINS', 'Settlements trade in water, bullets, old promises, and stranger things. Elves, mutants, zombies, and ordinary people all want a piece of tomorrow.'],
   ['YOUR FIELD LOG', 'Before you enter the wastes, tell the field log what to call you and choose a starting difficulty. Follow the signal to Haven. Your choices will shape the route you take, the people you help, and the life waiting for you with Stella in Haven.']
 ];
@@ -1224,6 +1234,11 @@ $('briefingButton').addEventListener('click', () => { if (briefingStep < briefin
 $('restartButton').addEventListener('click', restart);
 $('soundButton').addEventListener('click', toggleSound);
 $('tutorialButton').addEventListener('click', () => toggleTutorial(!$('tutorialPanel').open));
+$('matureButton').addEventListener('click', () => {
+  state.matureContent = !state.matureContent;
+  $('matureButton').setAttribute('aria-pressed', String(state.matureContent));
+  $('matureButton').textContent = state.matureContent ? 'MATURE TEXT: ON' : 'MATURE TEXT: OFF';
+});
 $('closeTutorial').addEventListener('click', () => toggleTutorial(false));
 $('tutorialPanel').addEventListener('close', () => {
   $('tutorialButton').setAttribute('aria-expanded', 'false');

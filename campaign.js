@@ -6,7 +6,7 @@ const campaignBeats = [
     objective: 'Find the green milepost and restore two-way radio contact.',
     radio: 'HAVEN / 88.3 // At the green milepost, follow the river upstream. Do not follow the white arrows.',
     clue: 'GREEN MILEPOST',
-    text: 'The last settlement on your map burned three nights ago. You have enough supplies to keep moving, but nowhere left to go. Then a woman interrupts the static.\n\n"My name is Stella. I am broadcasting from Haven. We have clean water, gardens, a clinic. You can sleep here without taking turns on watch." She pauses as if she knows how impossible that sounds. "The mountain passage closes with the hundred-day ash front. If you can hear me, find the green milepost. We will bring you home."\n\nYour transmitter is broken. You write down every word anyway.', effects: { item: 'DAMAGED RADIO', supplies: 3, food: 3 } },
+    text: 'The last settlement on your map burned three nights ago. You have enough supplies to keep moving, but nowhere left to go. Then a woman interrupts the static.\n\n"My name is Stella. I am broadcasting from Haven. We have clean water, gardens, a clinic. You can sleep here without taking turns on watch." She pauses as if she knows how impossible that sounds. "The mountain passage closes with the year-end ash front. If you can hear me, find the green milepost. We will bring you home."\n\nYour transmitter is broken. You write down every word anyway.', effects: { item: 'DAMAGED RADIO', supplies: 3, food: 3 } },
   { id: 'repair', act: 'I // SOMEONE IS LISTENING', title: 'THE LAST BATTERY', region: 0,
     objective: 'Repair your radio and answer Stella.',
     text: 'At the milepost, a maintenance shed contains one working battery. Beside it, a stranded courier named Ellis is trying to start a heater for his injured sister, June. Both are adults. He catches you looking at the battery.\n\n"Take it and you get your radio," he says. "Stay and help me splice the cable, and maybe we both get what we need." The work will keep you here after dark.',
@@ -18,7 +18,7 @@ const campaignBeats = [
   { id: 'portrait', act: 'I // SOMEONE IS LISTENING', title: 'THE WOMAN IN THE TRANSMISSION', kind: 'radio', day: 12, region: 0, camp: true,
     objective: 'Locate Saint Agnes bell tower for the next bearing.',
     radio: 'STELLA / VERIFIED // Saint Agnes has no cross. Count three bells, then look beneath the western stair.', clue: 'THREE BELLS / WESTERN STAIR',
-    text: 'Twelve days of following the river bring you to a ranger hut stocked by Haven’s search crews. Stella talks you through the water filter while the radio slowly reconstructs a photograph.\n\nShe is twenty-nine, a strikingly beautiful woman with dark curls, warm brown eyes, and a small scar through one eyebrow. In the picture she is laughing at something outside the frame. "My neighbor took that after I dropped an entire birthday cake," she says. "Please do not build a mysterious legend around me."\n\nHer mother helped establish Haven after the evacuations. Stella maintains its rescue radio now. She describes a town built above a clean aquifer, protected by the mountains, where everyone receives a room and medical care. She gives you the next clue in pieces: raiders listen to the open frequencies too.' },
+    text: 'Weeks of following the river bring you to a ranger hut stocked by Haven’s search crews. Stella talks you through the water filter while the radio slowly reconstructs a photograph.\n\nShe is twenty-nine, a strikingly beautiful woman with dark curls, warm brown eyes, and a small scar through one eyebrow. In the picture she is laughing at something outside the frame. "My neighbor took that after I dropped an entire birthday cake," she says. "Please do not build a mysterious legend around me."\n\nHer mother helped establish Haven after the evacuations. Stella maintains its rescue radio now. She describes a town built above a clean aquifer, protected by the mountains, where everyone receives a room and medical care. She gives you the next clue in pieces: raiders listen to the open frequencies too.' },
   { id: 'bells', act: 'II // A MAP MADE OF VOICES', title: 'UNDER THE WESTERN STAIR', region: 1,
     objective: 'Choose which route clue to recover.',
     text: 'Saint Agnes has three bells and an empty socket where its cross once stood. Beneath the western stair is a survey box. Its map has split into two legible halves: a high ridge marked with sun symbols, and an old aqueduct marked with blue tiles.\n\nStella explains the difference. The ridge is exposed but still has working signal mirrors. The aqueduct is sheltered, but someone must restart its pumps. Neither route reaches Haven by itself; each leads to the weather station where its final approach can be found.',
@@ -53,7 +53,7 @@ const campaignBeats = [
   { id: 'falsehaven', act: 'III // NOT EVERY LIGHT IS HOME', title: 'A SECOND STELLA', kind: 'radio', day: 40, region: 2, camp: true,
     objective: 'Verify the new broadcast before changing course.',
     radio: 'UNVERIFIED / 88.3 // This is Stella. The route has changed. Follow the white arrows to the motorway.',
-    text: 'During two weeks of travel, Stella’s check-ins become a measure of the days. At the next aid shelter, your radio catches her voice telling you to abandon the north fork. The message repeats with precisely the same breath in the same place.\n\nThen your private channel crackles. "That recording is not me. Someone stole our welcome tape." The motorway arrows were the first thing she warned you about. A broker named Rook has built a camp beneath a white-painted overpass. His guards offer food to anyone who will surrender their radio.\n\nEllis’s call sign appears in Rook’s traffic log. Whatever happened at the shed, the courier has crossed his path.' },
+    text: 'During the long weeks of travel, Stella’s check-ins become a measure of the days. At the next aid shelter, your radio catches her voice telling you to abandon the north fork. The message repeats with precisely the same breath in the same place.\n\nThen your private channel crackles. "That recording is not me. Someone stole our welcome tape." The motorway arrows were the first thing she warned you about. A broker named Rook has built a camp beneath a white-painted overpass. His guards offer food to anyone who will surrender their radio.\n\nEllis’s call sign appears in Rook’s traffic log. Whatever happened at the shed, the courier has crossed his path.' },
   { id: 'rook', act: 'III // NOT EVERY LIGHT IS HOME', title: 'THE BROKER’S PRICE', region: 2,
     objective: 'Get past Rook without exposing Haven’s private channel.',
     text: () => `Rook meets you outside his camp. He has been selling false directions, then charging people to leave. "Give me your private frequency," he says, "and I give you a truck to the weather station."\n\n${state.story.courier === 'helped' ? 'Ellis slips you a note while Rook talks: THE SIDE GATE IS UNLOCKED. He remembers the heater.' : state.story.courier === 'traded' ? 'Ellis is repairing a truck under guard. He recognizes you and mouths: DO NOT TRUST HIM.' : 'Ellis is repairing a truck under guard. He recognizes you immediately. "Ask your friend on the radio what you did to June," he says.'}\n\nRook already knows your name. The frequency would let him listen to every rescue Stella coordinates.`,
@@ -87,7 +87,7 @@ const campaignBeats = [
     ], journey: true },
   { id: 'silence', act: 'IV // THE VALLEY ON THE MAP', title: 'WHEN SHE DOES NOT ANSWER', kind: 'event', day: 84, region: 5, camp: true,
     objective: 'Use your collected clues while Stella’s transmitter is down.',
-    text: 'The mountain storm takes Stella’s voice away. For three days, there is only static. You climb between abandoned signal posts, afraid to imagine the radio room empty.\n\nAt an emergency shelter you find a handwritten message from a Haven guide: CENTRAL TRANSMITTER DAMAGED. TOWN SAFE. CONTINUE BY VERIFIED MARKERS. There is food, a working stove, and a list of arrivals already expected. Your name is on it.\n\nThe clues still fit: the forked shadow points to the tunnel, and two flashes, pause, one is the answer a real guide will give. Stella has spent eighty days teaching you enough to reach her even when she cannot speak.' },
+    text: 'The mountain storm takes Stella’s voice away. For three days, there is only static. You climb between abandoned signal posts, afraid to imagine the radio room empty.\n\nAt an emergency shelter you find a handwritten message from a Haven guide: CENTRAL TRANSMITTER DAMAGED. TOWN SAFE. CONTINUE BY VERIFIED MARKERS. There is food, a working stove, and a list of arrivals already expected. Your name is on it.\n\nThe clues still fit: the forked shadow points to the tunnel, and two flashes, pause, one is the answer a real guide will give. Stella has spent months teaching you enough to reach her even when she cannot speak.' },
   { id: 'lastmile', act: 'V // THE DOOR THAT OPENS', title: 'THE LAST SIGNAL FIRE', region: 5,
     objective: 'Choose how to cross the final pass.',
     text: () => `${state.story.convoy === 'led' ? 'Your convoy reaches the final pass together. June’s stretcher team needs a rest.' : state.story.convoy === 'broadcast' ? 'Travelers following your broadcast crowd the final pass. Haven’s guides are checking each group; Rook’s scouts have been turned back without a shot.' : 'From above the pass you see Haven’s guides bringing Nadi’s group along your markers.'}\n\nAcross the ravine, a lamp flashes twice, pauses, then flashes once. Beneath you is a short maintenance tunnel. The longer marked path leads to a rescue shelter where you can coordinate the crossing. Both lead toward Haven.`,
@@ -99,7 +99,7 @@ const campaignBeats = [
   { id: 'meeting', act: 'V // THE DOOR THAT OPENS', title: 'STELLA, WITHOUT THE STATIC', kind: 'context', day: 96, region: 6, camp: true,
     objective: 'Meet Stella at Haven’s outer rescue lodge.',
     radio: 'STELLA / HANDHELD // I am at the lodge. You do not have to describe yourself. I know your voice.',
-    text: () => `At the outer lodge, someone calls your name. Stella has come out from Haven with its medical team. She is even more beautiful in motion than in the slow radio photograph: windblown curls, tired eyes brightening when she sees you, a smile she cannot quite keep steady. Then she trips over a supply crate and the solemn moment breaks into laughter.\n\n${stellaTrustScore() >= 2 ? '"I kept imagining this," she says. She asks before embracing you. For a moment you can feel how frightened she has been for someone she had never touched.' : '"You made it." Her welcome is sincere, even with the distance between you. She hands you a warm cup and introduces you to the medics.'}\n\nThe last four days will be a sheltered descent with Haven’s guides. The lodge is safe. The valley beyond is safer. Nobody asks you to earn either one.` },
+    text: () => `At the outer lodge, someone calls your name. Stella has come out from Haven with its medical team. She is even more beautiful in motion than in the slow radio photograph: windblown curls, tired eyes brightening when she sees you, a smile she cannot quite keep steady. Then she trips over a supply crate and the solemn moment breaks into laughter.\n\n${stellaTrustScore() >= 2 ? '"I kept imagining this," she says. She asks before embracing you. For a moment you can feel how frightened she has been for someone she had never touched.' : '"You made it." Her welcome is sincere, even with the distance between you. She hands you a warm cup and introduces you to the medics.'}\n\nThe final stretch will be a sheltered descent with Haven’s guides. The lodge is safe. The valley beyond is safer. Nobody asks you to earn either one.` },
   { id: 'promise', act: 'V // THE DOOR THAT OPENS', title: 'WHAT COMES AFTER RESCUE', region: 6,
     objective: 'Decide what you and Stella become in Haven.',
     text: () => state.story.interest === 'romance' && stellaTrustScore() >= 2
@@ -114,7 +114,7 @@ const campaignBeats = [
       if (!state.story.partner && state.story.interest === 'romance' && stellaTrustScore() >= 2) choices.unshift(storyChoice('Tell her you want that date; kiss her when she leans closer', 'She smiles, asks "May I?", and you say yes. The kiss is quiet and a little awkward, followed by laughter. Tomorrow you will keep walking. After that, there can be ordinary days together.', { bond: 'romance' }, { ally: 'STELLA', lover: 'STELLA', luck: 3 }));
       return choices;
     } },
-  { id: 'morning', act: 'EPILOGUE // DAY 100', title: 'HAVEN', kind: 'ending', day: 100, region: 7,
+  { id: 'morning', act: 'EPILOGUE // DAY 365', title: 'HAVEN', kind: 'ending', day: 365, region: 7,
     objective: 'Enter a place where you can finally live in peace.', text: () => campaignEpilogue() }
 ];
 
@@ -132,7 +132,7 @@ function campaignEndingTitle() {
 }
 function campaignEpilogue() {
   const s = state.story;
-  const paragraphs = ['DAY 100. The trees part and Haven lies below you: orchards, a clear stream, roofs patched in bright colors. The gate is open. Beyond it, a child is learning to ride a bicycle while someone argues cheerfully about bread. You wait for the hidden cruelty, the price, the alarm. None comes.\n\nThe clinic treats you. A steward gives you a room and a key. The mountains shelter the valley from the ash front; the wells run clean. Nobody makes you stand watch before you sleep. Haven is the peace Stella promised.'];
+  const paragraphs = ['DAY 365. The trees part and Haven lies below you: orchards, a clear stream, roofs patched in bright colors. The gate is open. Beyond it, a child is learning to ride a bicycle while someone argues cheerfully about bread. You wait for the hidden cruelty, the price, the alarm. None comes.\n\nThe clinic treats you. A steward gives you a room and a key. The mountains shelter the valley from the ash front; the wells run clean. Nobody makes you stand watch before you sleep. Haven is the peace Stella promised.'];
   if (s.convoy === 'led') paragraphs.push(s.arrival === 'together' ? 'Nadi, June, and the convoy enter beside you. That evening, the people you brought home fill a long table. They ask you to help welcome the next arrivals once you have rested. For the first time, being needed does not mean being in danger.' : 'Nadi’s convoy arrives with the guides. June finds you in the dining hall and places a flower from the roadside beside your bowl. You helped turn a rumor into a home for more than yourself.');
   else if (s.convoy === 'broadcast') paragraphs.push('Your open broadcast brought strangers and danger to the pass. Haven’s guides changed the reception route and kept Rook outside. Now you help them replace exposed markers with safe instructions. The people you reached are grateful; the people you endangered are allowed to be angry. Neither costs you your right to shelter.');
   else paragraphs.push('Nadi and June arrive with the rescue crews you called. Their route follows the markers you left. You did not have to carry everyone yourself to make a difference.');
@@ -148,27 +148,19 @@ function campaignEpilogue() {
   return paragraphs.join('\n\n');
 }
 
-function createCampaignRoute() {
-  const pool = [...scenarios.filter(scene => ['THE TIN CANARY', 'MOVEMENT IN THE WHITE', 'THE WITCHLIGHT WELL'].includes(scene.title)), ...eventScenes.filter(scene => ['THE SKY OPENS', 'A BODY IN THE ROAD'].includes(scene.title))];
-  for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
-  const route = []; let encounter = 0;
-  campaignBeats.forEach((beat, index) => {
-    route.push({ campaignId: beat.id });
-    if (beat.journey) route.push({ ...pool[encounter++], journeyContext: campaignBeats[index + 1].objective, journeyAct: beat.act, journeyRegion: beat.region });
-  });
-  return route;
-}
+function createCampaignRoute() { return buildYearRoute(); }
 function resolveCampaignScene(scene) {
+  if (scene.expedition) return resolveRoadScene(scene);
   if (!scene.campaignId) return scene;
   const beat = campaignBeats.find(entry => entry.id === scene.campaignId);
-  return { ...beat, campaignId: beat.id, type: `${beat.act} // ${beat.kind ? beat.kind.toUpperCase() : 'DECISION'}`, text: typeof beat.text === 'function' ? beat.text() : beat.text, choices: typeof beat.choices === 'function' ? beat.choices() : beat.choices };
+  return { ...beat, calendarDay: scene.calendarDay, campaignId: beat.id, type: `${beat.act} // ${beat.kind ? beat.kind.toUpperCase() : 'DECISION'}`, text: typeof beat.text === 'function' ? beat.text() : beat.text, choices: typeof beat.choices === 'function' ? beat.choices() : beat.choices };
 }
 function renderCampaignContext(scene) {
-  $('campaignContext').textContent = `${scene.act || scene.journeyAct} — ${scene.objective || scene.journeyContext} // REACH HAVEN BY DAY 100`;
+  $('campaignContext').textContent = `${scene.act || scene.journeyAct} — ${scene.objective || scene.journeyContext} // REACH HAVEN BY DAY 365`;
   state.region = scene.region ?? scene.journeyRegion ?? state.region;
   $('regionValue').textContent = regions[state.region][0];
   $('anomalyValue').textContent = regions[state.region][1];
-  $('location').textContent = `${regions[state.region][0]} // DAY ${state.day} / 100`;
+  $('location').textContent = `${regions[state.region][0]} // DAY ${state.day} / 365`;
   $('radioMessage').textContent = state.story.lastRadio || 'RADIO // Waiting for a verified signal.';
   $('routeClues').textContent = `ROUTE NOTES // ${(state.story.clues || []).join(' → ') || 'No verified clues yet.'}`;
 }
@@ -177,12 +169,12 @@ function renderCampaignBeat(scene) {
   const before = captureOutcome();
   if (!state.story.seen.includes(scene.id)) {
     state.story.seen.push(scene.id);
-    if (scene.day) state.day = Math.max(state.day, scene.day);
+    // The calendar advances one day per scene; shelters never skip weeks.
     if (scene.radio) state.story.lastRadio = scene.radio;
     if (scene.clue) { state.story.clues ||= []; if (!state.story.clues.includes(scene.clue)) state.story.clues.push(scene.clue); }
     if (scene.camp) {
-      state.food = Math.max(state.food, activeBase().food || 10); state.supplies = Math.max(state.supplies, 12);
-      state.health = Math.min(100, state.health + 12 + (activeBase().healing || 0)); state.radiation = Math.max(0, state.radiation - 12);
+      state.food = Math.max(state.food, activeBase().food ? 8 : 6); state.supplies = Math.max(state.supplies, 7);
+      state.health = Math.min(100, state.health + 8 + (activeBase().healing || 0)); state.radiation = Math.max(0, state.radiation - 8);
     }
     if (scene.effects) { applyStoryEffects([null,0,0,0,0,'',scene.effects]); state.health = clamp(state.health + (scene.effects.health || 0),0,100); }
   }

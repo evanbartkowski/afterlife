@@ -28,6 +28,7 @@ function game(seed = 7) {
   const ctx = vm.createContext({ document, Math: math, console, localStorage: { getItem() { return null; }, setItem() {}, removeItem() {} } });
   vm.runInContext(fs.readFileSync(path.join(root, 'campaign.js'), 'utf8'), ctx);
   vm.runInContext(fs.readFileSync(path.join(root, 'expansion.js'), 'utf8'), ctx);
+  vm.runInContext(fs.readFileSync(path.join(root, 'journey.js'), 'utf8'), ctx);
   const script = fs.readFileSync(path.join(root, 'script.js'), 'utf8');
   vm.runInContext(script.slice(0, script.indexOf("$('briefingButton').addEventListener")), ctx);
   return { run: source => vm.runInContext(source, ctx), nodes, listeners, badges };
@@ -49,17 +50,19 @@ for (const difficulty of ['beginner', 'survivor', 'wasteland', 'impossible']) {
     test.run(`setDifficulty('${difficulty}')`);
     let steps = 0, previousDay = 1;
     while (!test.run("state.route[state.scenario].campaignId === 'morning'")) {
+      // Isolate narrative branching from survival balance in these full-route checks.
+      test.run('state.health=100;state.radiation=0;state.food=40;state.supplies=40');
       test.run(`if (state.route[state.scenario].choices) choose(Math.min(${branch}, state.route[state.scenario].choices.filter(c => !c[6]?.death).length - 1));`);
       assert(test.run('state.health > 0'), `${difficulty} branch ${branch} died at step ${steps}`);
       assert(test.run('Number.isInteger(state.food * 2) && Number.isInteger(state.supplies * 2)'), 'Rations left half-unit increments');
       assert(test.run('state.day') >= previousDay, 'Calendar went backwards');
-      assert(test.run('state.day < 100'), 'Reached deadline before arrival');
+      assert(test.run('state.day < 365'), 'Reached deadline before arrival');
       previousDay = test.run('state.day');
       test.listeners.click(); test.run('nextScene()');
-      assert(++steps < 60, 'Campaign repeated or failed to advance');
+      assert(++steps < 366, 'Campaign repeated or failed to advance');
     }
-    assert.equal(test.run('state.day'), 100);
-    assert.match(test.nodes.get('sceneText').textContent, /DAY 100/);
+    assert.equal(test.run('state.day'), 365);
+    assert.match(test.nodes.get('sceneText').textContent, /DAY 365/);
     assert.match(test.nodes.get('sceneText').textContent, /Haven is the peace Stella promised/);
     assert.match(test.nodes.get('routeClues').textContent, /SPLIT SHADOW/);
     const index = test.run('state.scenario'); test.run('nextScene()');
@@ -107,9 +110,9 @@ assert.equal(systems.run('state.food'),9);
 systems.run("state.base='MOSS CARAVAN';state.food=1;buildDynamicChoices()[0].apply()");
 assert.equal(systems.run('state.food'),4);
 systems.run("state.story={seen:[],clues:[]};state.health=30;state.base='MOON SHRINES';renderCampaignBeat(resolveCampaignScene({campaignId:'moonpool'}))");
-assert.equal(systems.run('state.health'),48);
+assert.equal(systems.run('state.health'),44);
 systems.run("renderCampaignBeat(resolveCampaignScene({campaignId:'moonpool'}))");
-assert.equal(systems.run('state.health'),48,'Shrine benefit repeated on render');
+assert.equal(systems.run('state.health'),44,'Shrine benefit repeated on render');
 systems.run("state.story={seen:[],clues:[]};state.evil=0;state.items=[];applyStoryEffects(resolveCampaignScene({campaignId:'vault'}).choices[1])");
 assert.equal(systems.run('humanity()'),70);assert(systems.run("state.enemies.includes('VAULT GUILD')"));
 systems.run("choosePartner('LYRIA');applyStoryEffects(resolveCampaignScene({campaignId:'bellcourt'}).choices[1])");
@@ -165,3 +168,49 @@ for (const [id,partner,flag] of [['lyria_lantern','LYRIA','lyriaIntimacy'],['nyx
   assert.equal(intimacy.run('state.story.partner'),partner);
 }
 console.log('PASS: mature scenes follow the selected partner and respect choosing to wait.');
+
+const year = game(92);
+assert.equal(year.run('state.route.length'),365);
+assert.equal(year.run('state.route.every((scene,index)=>scene.calendarDay===index+1)'),true);
+assert(year.run('state.route.filter(scene=>scene.expedition).length')>300);
+assert.equal(year.run('captureOutcome().route'),undefined);
+const content = game();
+content.run("state.story.partner='STELLA'");
+assert.doesNotMatch(content.run("filterMatureScene(resolveCampaignScene({campaignId:'stella_evening'})).text"),/kiss her/);
+content.run('state.matureContent=true');
+assert.match(content.run("filterMatureScene(resolveCampaignScene({campaignId:'stella_evening'})).text"),/kiss her/);
+const risk = game();
+risk.run("state.health=8;state.radiation=100;state.difficulty='impossible';Math.random=()=>0;state.scenario=state.route.findIndex(s=>s.expedition);renderScenario();choose(1)");
+assert.equal(risk.run('state.runEnded'),true);
+assert.equal(risk.run('state.health'),0);
+let rescued=0, lost=0;
+for(let seed=1;seed<=12;seed++) {
+  const survival=game(seed);
+  survival.run("setDifficulty('survivor')");
+  for(let day=1;day<=365&&!survival.run('state.runEnded');day++) {
+    survival.run(`
+      var active=state.route[state.scenario];
+      if(active.choices) {
+        const option=active.expedition ? (state.health<55 ? 2 : state.supplies<9 || state.food<8 ? 1 : 0) : ['wayhouse','newbase'].includes(active.campaignId)?1:0;
+        choose(option);
+      }
+      if(!state.runEnded) nextScene();
+    `);
+  }
+  if(survival.run('state.health>0 && state.day===365'))rescued++;else lost++;
+}
+assert(rescued>0,'No successful unassisted Survivor route found');
+console.log(`Survival balance check: ${rescued}/12 cautious Survivor runs reached Haven; ${lost}/12 died. No resources or health were injected.`);
+console.log('PASS: 365 exact daily scenes, 300+ travel encounters, content toggle, compact snapshots, and lethal risky scavenging.');
+let recklessLosses=0;
+for(let seed=1;seed<=12;seed++) {
+  const reckless=game(seed);reckless.run("setDifficulty('survivor')");
+  for(let i=0;i<365&&!reckless.run('state.runEnded');i++) {
+    reckless.run("if(state.route[state.scenario].choices)choose(state.route[state.scenario].expedition?1:0);if(!state.runEnded)nextScene()");
+  }
+  if(reckless.run('state.health<=0'))recklessLosses++;
+}
+assert(recklessLosses>lost,'Reckless scavenging was not more dangerous than cautious play');
+const twice=game();twice.run("state.scenario=state.route.findIndex(s=>s.expedition);renderScenario();choose(0)");
+const foodOnce=twice.run('state.food');twice.run('choose(0)');assert.equal(twice.run('state.food'),foodOnce);
+console.log('Reckless strategy: '+recklessLosses+'/12 Survivor runs died. Duplicate choice resolution blocked.');

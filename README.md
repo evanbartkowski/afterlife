@@ -2,7 +2,7 @@
 
 **Afterlight: A Survival Story** is the browser game in this repository: a single-player, text-based survival adventure set in a post-apocalyptic world. Follow an ordered, five-act campaign while managing supplies, navigating relationships, and dealing with unpredictable encounters on the road.
 
-Your last shelter is gone. Stella, a rescue radio operator broadcasting from Haven, promises a real sanctuary with clean water, gardens, medical care, and peace. Follow her messages and verify the clues to reach it by day 100, before the mountain passage closes.
+Your last shelter is gone. Stella, a rescue radio operator broadcasting from Haven, promises a real sanctuary with clean water, gardens, medical care, and peace. Follow her messages and verify the clues to reach it by day 365, before the mountain passage closes.
 
 ## Play locally
 
@@ -25,7 +25,7 @@ No build step, package installation, or server is required to play. The game use
 - **Make a decision when choices appear.** Choices can affect survival stats, items, relationships, and later story outcomes. Some options require an item and remain disabled without it.
 - **Read the result before continuing.** The game shows the narrative consequence and the names of any newly gained items.
 - **Choose Continue onward.** This advances to the next scene. Some scenes provide context, dialogue, or an unfolding event instead of a decision.
-- **Reach Haven by day 100.** The campaign follows a paced 100-day journey and concludes with your arrival in a genuinely safe sanctuary. Health reaching zero ends the run early.
+- **Reach Haven by day 365.** The campaign follows a paced 365-day journey and concludes with your arrival in a genuinely safe sanctuary. Health reaching zero ends the run early.
 
 There is no real-time countdown. Take as long as you want to read. Use the mouse or keyboard to activate buttons, and scroll within the story panel to read longer scenes.
 
@@ -64,7 +64,7 @@ Romance with Stella is optional and requires expressed interest and sufficient t
 
 Random encounters are inserted at journey breaks between campaign scenes. Additional interruptions can occur during ordinary encounters, while central campaign decisions remain uninterrupted. Foraging may appear as an alternative on ordinary choice scenes.
 
-Shelter chapters move the calendar forward through periods of travel and recovery. They restore health, reduce radiation, and bring food and water up to a minimum reserve. You do not need to click through 100 individual days. Mutating does not restart the campaign, and reaching the end does not reshuffle it into a new loop.
+Shelters no longer skip weeks. They restore up to 8 health, remove up to 8 radiation, and refill food and water to minimum reserves of 6 and 7. The run contains exactly 365 daily scenes; Continue advances one day without calendar jumps. Mutating does not restart the campaign, and reaching the end does not reshuffle it into a new loop.
 
 ### Radio clues and branching quests
 
@@ -98,7 +98,7 @@ Your base is a network of shelters and couriers along the road. Choose one early
 
 | Base | Active benefits |
 | --- | --- |
-| Moss Caravan | Foraging yields one extra food; shelter food reserves refill to at least 12. |
+| Moss Caravan | Foraging yields one extra food; shelter food reserves refill to at least 8. |
 | Warden Outposts | Travel water use reduced by 0.5 per day; daily radiation gain reduced by 0.25. Difficulty-based water costs still apply. |
 | Moon Shrines | Six extra health restored at shelter stops; daily food use reduced by 0.5, to a minimum of 0.5. |
 
@@ -110,11 +110,19 @@ Lyria and Nyx add two ending titles, **An Orchard Under Two Moons** and **Nothin
 
 ### Mature scenes
 
-Five additional scenes mix romantic tension, fade-to-black intimacy, supernatural impersonation, and body horror into the journey. Private scenes with Stella, Lyria, or Nyx appear only for your current partner; choosing to wait does not damage the relationship. Other paths receive quiet, non-romantic scenes instead. These moments do not consume extra travel days.
+Five additional scenes mix romantic tension, fade-to-black intimacy, supernatural impersonation, and body horror into the journey. Private scenes with Stella, Lyria, or Nyx appear only for your current partner; choosing to wait does not damage the relationship. Other paths receive quiet, non-romantic scenes instead. These quiet moments occupy a calendar day but do not charge travel supplies.
 
 ### Fatal decisions
 
 Eight unique death outcomes are attached to dangerous choices along the route. Scene text gives a warning and the option is marked **LETHAL RISK**. Selecting one ends the run immediately, regardless of health or race, and shows its own narrative ending. Some descriptions are gruesome. Safe alternatives remain available. Death prevents further progression until you restart.
+
+## A full year on the road
+
+The 365-scene route keeps main quests in order and inserts over 300 daily travel encounters from a shuffled set of 16 situations. Weather changes with the season and periodic radio dispatches provide updates between major plot points. Situations recur over the year; they are not 300 individually authored quests.
+
+Cautious searches offer smaller rewards. Risky searches offer larger hauls, with injury chances of 15/25/35/45% and damage of 10/15/20/25 from Beginner through Impossible. Rest heals and decontaminates but consumes existing provisions. Each food or water shortage deals 3 health damage per travel day.
+
+State snapshots omit the full route and audio object, saved routes use compact descriptors, and choice buttons ignore duplicate resolution. The interface respects reduced-motion preferences.
 
 ## Controls and progress
 
@@ -123,6 +131,7 @@ Eight unique death outcomes are attached to dangerous choices along the route. S
 | Choice buttons | Resolve the selected action and show its consequences. |
 | Continue onward | Advance after reading a result or narrative scene. |
 | Tutorial | Open or close the optional field manual. |
+| Mature Text | Optional detail for non-explicit intimacy and graphic horror in upcoming scenes; off uses shorter descriptions without changing mechanics. |
 | Sound | Turn the included background music on or off. Music starts after interaction. |
 | Restart Run | Reset your survivor, choices, and campaign progress. |
 
@@ -136,6 +145,7 @@ Eight unique death outcomes are attached to dangerous choices along the route. S
 | `style.css` | Visual design, responsive layout, and stat feedback styling. |
 | `campaign.js` | Ordered campaign, branching dialogue, journey encounters, and epilogues. |
 | `expansion.js` | Connected fantasy quests, support bases, humanity, and additional relationships. |
+| `journey.js` | Daily encounter generation, travel risk, and mature-text filtering. |
 | `script.js` | Game state, survival rules, choice resolution, UI rendering, and music controls. |
 | `media/` | Game artwork. |
 | `music/` | Background audio tracks. |
@@ -149,7 +159,8 @@ With Node.js installed, run these commands from the repository folder:
 node --check campaign.js
 node --check script.js
 node --check expansion.js
+node --check journey.js
 node tests/campaign.test.cjs
 ```
 
-The campaign test runs 12 expanded playthroughs across the four difficulties and checks the 100-day timeline, both quest routes, seven ending titles, clue persistence, half-rations, base benefits, crime and restitution, romance boundaries, decision aftermath, item-only rewards, and mutation continuity. It uses a lightweight browser stub; it does not replace visual testing in a browser.
+The campaign test runs 12 narrative-isolation playthroughs (with health and supplies replenished for branch coverage), plus separate unassisted survival simulations. It tests expanded playthroughs across the four difficulties and checks the 365-day timeline, both quest routes, seven ending titles, clue persistence, half-rations, base benefits, crime and restitution, romance boundaries, decision aftermath, item-only rewards, and mutation continuity. It uses a lightweight browser stub; it does not replace visual testing in a browser.
