@@ -1050,7 +1050,7 @@ function choose(index) {
   const mode = difficulties[state.difficulty];
   const beforeStats = { oddsValue: state.odds, healthValue: state.health, radiationValue: state.radiation, suppliesValue: state.supplies, foodValue: state.food, luckValue: state.luck };
   const luckSwing = Math.floor((Math.random() * 9) - 4) + Math.floor(state.luck / 25);
-  const shelterDecision = ['wayhouse','connection','transformation','lyria_night','nyx_night','newbase','promise'].includes(state.route[state.scenario].campaignId);
+  const shelterDecision = ['wayhouse','connection','transformation','lyria_night','nyx_night','newbase','promise','lyria_lantern','hollow_broadcast','nyx_rooftop','bone_procession','stella_evening'].includes(state.route[state.scenario].campaignId);
   const travelDays = shelterDecision ? 0 : state.route[state.scenario].campaignId ? 1 : (Math.random() < 0.2 ? 2 + Math.floor(Math.random() * 3) : 1);
   state.odds = Math.max(0, Math.min(99, state.odds + choice[1] + luckSwing));
   state.supplies = Math.max(0, state.supplies + choice[2] - (travelDays ? mode.drain : 0));

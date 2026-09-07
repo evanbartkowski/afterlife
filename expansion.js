@@ -164,3 +164,62 @@ for (const [id, build] of Object.entries(fatalRoutes)) {
     return [...(typeof originalChoices === 'function' ? originalChoices() : originalChoices), storyChoice(fatal.label, fatal.text, {}, { death: { title: fatal.title, text: fatal.text } })];
   };
 }
+const matureBeats = [
+  ['lyria_night', {
+    id:'lyria_lantern',act:'II // AFTER THE FIRE',title:'THE LANTERN LEFT OUTSIDE',region:2,
+    objective:'Choose how to spend the quiet hours at the shrine.',
+    text:()=>state.story.partner === 'LYRIA'
+      ? 'Lyria finds you drying your coat outside the guest room. Without the armor and sharp jokes, she looks tired. "I have spent years leaving before anyone can ask me to stay," she says. "Tonight I would like to try something else."\n\nShe kisses you, then rests her forehead against yours. For a moment the road feels very far away. "Would you like to stay?" The question is simple. The courage it takes her to ask is not.'
+      : 'You pass a shrine room where two travelers are dancing to a cracked music box. One laughs against the other’s shoulder. They close the curtain, and you continue toward the fire.\n\nAfter so many frightened nights, the sight of people choosing tenderness feels almost defiant. A keeper pours you tea and asks which ordinary pleasure you miss most.',
+    choices:()=>state.story.partner === 'LYRIA' ? [
+      storyChoice('Stay with her and close the door','You say yes. Lyria leaves the lantern outside and draws you into a kiss. The door closes on the cold corridor.\n\nIn the morning she has stolen most of the blanket. You discover that her apologies are much less convincing when she is laughing.',{lyriaIntimacy:'shared'}),
+      storyChoice('Tell her you want to take things slowly','"Then slowly." She kisses your cheek and walks you to your room. The next morning she meets you with the same warmth. Nothing has been withdrawn.',{lyriaIntimacy:'slow'})
+    ] : [storyChoice('Remember something you want in a peaceful life','You describe an ordinary morning without fear. The keeper listens as if that is a perfectly reasonable thing to want.',{quietHope:true})]
+  }],
+  ['falsehaven', {
+    id:'hollow_broadcast',act:'III // THE VOICES AFTER MIDNIGHT',title:'DO NOT ANSWER YOURSELF',region:2,
+    objective:'Decide what to do with the voice outside the shelter.',
+    text:'At 2:13 a.m., someone knocks on the shelter door. They ask to be let in using your voice. Then Stella’s. Then the voice of someone you buried years ago.\n\nThrough the letter slot you see a bare foot bent backward at the ankle. The thing above it is trying to stand the way people stand. Your radio displays an old rescue warning: HOLLOW ECHO. COPIES THE LIVING. CANNOT COPY A NEW ANSWER.\n\n"It is so cold," your own voice says. "Why would you leave yourself out here?"',
+    choices:[
+      storyChoice('Ask what you told Stella on the private channel','The thing repeats the question. Its voice stretches into the shriek of feedback, then drops away. At dawn you find wet handprints on the door, each with one finger too many.\n\nYou copy the warning into the shelter log so the next traveler will know.',{echo:'tested'},{item:'HOLLOW ECHO WARNING'}),
+      storyChoice('Keep the door barred and wait for dawn','You sit against the door until the voices stop. The last one is a child asking for its mother. You know what is making it. Knowing does not make the night easier.\n\nAt dawn the threshold is empty, but you cannot bring yourself to remove the bar for another hour.',{echo:'waited'})
+    ]
+  }],
+  ['nyx_night', {
+    id:'nyx_rooftop',act:'III // WITHOUT THE MASK',title:'THE ROOM SHE PAID FOR',region:3,
+    objective:'Spend an evening with Nyx, or find your own quiet.',
+    text:()=>state.story.partner === 'NYX'
+      ? 'Nyx has rented a room above the shelter kitchen. "Paid for it," she says, holding up the receipt. "I thought you might appreciate the novelty." There are two cups on the table and an actual lock on the door.\n\nShe reaches for a joke, then stops. "I can flirt with a stranger without feeling a damn thing. This is different. It scares me." She takes your hand and waits for you to answer.'
+      : 'From the shelter roof, you watch lamplight move behind the windows of a distant inn. Somewhere a couple is arguing. Somewhere else people are laughing too loudly.\n\nFor once the noise is not a warning. You stay long enough to remember that survival used to include evenings with nothing important to do.',
+    choices:()=>state.story.partner === 'NYX' ? [
+      storyChoice('Tell her she does not have to perform; stay the night','You tell her the truth about being frightened too. The kiss that follows has none of her practiced bravado. She turns the key, and the rest of the world can wait outside.\n\nAt breakfast she is still there. You realize that, for Nyx, staying may have been the bravest part.',{nyxIntimacy:'shared'}),
+      storyChoice('Ask for conversation tonight, without rushing further','Nyx puts the key on the table. You talk until the kitchen below begins making breakfast. She tells you her real surname and makes you promise not to use it when she is trying to sound dangerous.',{nyxIntimacy:'slow'})
+    ] : [storyChoice('Let yourself enjoy an uneventful evening','You return to your bunk rested in a way that sleep alone has not managed.',{quietEvening:true})]
+  }],
+  ['bellcourt', {
+    id:'bone_procession',act:'IV // THE THINGS WE CARRY',title:'THE PROCESSION OF BORROWED FACES',region:3,
+    objective:'Decide whether to help someone trapped in the Court’s aftermath.',
+    text:()=>`At the next waystation, a procession crosses the road without footsteps. Its mourners wear faces stitched from pale scraps. Beneath the cloth, something clicks against their teeth.\n\n${state.story.bell === 'bound' ? 'Your stolen soul-bell trembles. One mourner turns toward you with Edda’s missing memories shining behind its eyes.' : 'A mourner turns toward you. Beneath its borrowed face, you recognize the eyes of the vault’s night porter.'}\n\nHe has been made to carry a coffin that is growing into his arms. A route marker says the procession must release anyone whose living name is spoken at the wayside lamp. He mouths his name: Abel.`,
+    choices:[
+      storyChoice('Speak Abel’s name beside the lamp','The stitches pull tight, then split. The coffin falls away with a sound like snapping branches. Abel drops to his knees, his arms striped with raw seams where the wood held him.\n\nYou wrap the wounds. He cannot explain what happened inside the procession. He asks you never to let anyone put a mask on him again.',{procession:'helped'},{ally:'ABEL',food:-.5,reputation:1}),
+      storyChoice('Wait behind the marker until the procession passes','You keep your eyes on the lamp. The porter’s lips continue forming his name until the procession disappears into the trees.\n\nLater you leave his name in the rescue log. It is less than he asked of you. You know that.',{procession:'passed'})
+    ]
+  }],
+  ['promise', {
+    id:'stella_evening',act:'V // BEFORE AN ORDINARY MORNING',title:'NO VOICES BETWEEN YOU',region:6,
+    objective:'Spend the final lodge evening with the person you chose.',
+    text:()=>state.story.partner === 'STELLA'
+      ? 'Stella finishes her shift and finds you beside the lodge stove. For months you knew her through static. Now you notice the way she presses her lips together when she is nervous.\n\n"I used to imagine what I would say when you were here," she says. "None of it sounded this awkward." You kiss her, and she laughs softly against your cheek. She asks whether you would like to stay with her tonight. There is no urgency in the question. You finally have time.'
+      : state.story.partner
+        ? `You spend the evening with ${state.story.partner === 'LYRIA' ? 'Lyria' : 'Nyx'} while the lodge settles around you. Stella stops by to confirm the morning escort, then wishes you both a good night. Nobody needs you to prove anything before you are allowed to rest.`
+        : 'Stella joins you beside the stove with two mugs. You talk about the absurd little things you want from Haven: clean socks, a door that locks, a whole afternoon to waste. When she leaves, the room feels peaceful rather than empty.',
+    choices:()=>state.story.partner === 'STELLA' ? [
+      storyChoice('Stay with Stella','You tell her you want to. She takes your hand and leads you upstairs; the radio stays on its hook. The door closes, and the night belongs to the two of you.\n\nIn the morning she wakes before you and opens the curtains. "Still here," she says when you stir. You have never heard a better promise.',{stellaIntimacy:'shared'}),
+      storyChoice('Tell her you would rather wait until you have settled','"Then we wait." She kisses you goodnight and gives you the extra blanket she brought. At breakfast there is a place beside her, just as there would have been otherwise.',{stellaIntimacy:'slow'})
+    ] : [storyChoice('Rest and look forward to the morning','For once, you do not fall asleep listening for footsteps. Haven is one escorted descent away.',{lastNight:'rested'})]
+  }]
+];
+for (const [anchor, beat] of matureBeats) {
+  const index = campaignBeats.findIndex(scene => scene.id === anchor);
+  campaignBeats.splice(index + 1, 0, beat);
+}

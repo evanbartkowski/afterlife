@@ -153,3 +153,15 @@ for (const route of ['ridge','aqueduct']) {
 }
 assert.equal(fatalTitles.size,8);
 console.log('PASS: eight unique fatal outcomes, no mutation resurrection, no post-death progression, and restart recovery.');
+
+const intimacy = game();
+for (const [id,partner,flag] of [['lyria_lantern','LYRIA','lyriaIntimacy'],['nyx_rooftop','NYX','nyxIntimacy'],['stella_evening','STELLA','stellaIntimacy']]) {
+  intimacy.run('state.story.partner=null');
+  assert.equal(intimacy.run("resolveCampaignScene({campaignId:'"+id+"'}).choices.length"),1);
+  intimacy.run("state.story.partner='"+partner+"'");
+  assert.equal(intimacy.run("resolveCampaignScene({campaignId:'"+id+"'}).choices.length"),2);
+  intimacy.run("const choice_"+flag+"=resolveCampaignScene({campaignId:'"+id+"'}).choices[1];applyStoryEffects(choice_"+flag+")");
+  assert.equal(intimacy.run('state.story.'+flag),'slow');
+  assert.equal(intimacy.run('state.story.partner'),partner);
+}
+console.log('PASS: mature scenes follow the selected partner and respect choosing to wait.');
