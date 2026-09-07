@@ -23,7 +23,7 @@ No build step, package installation, or server is required to play. The game use
 
 - **Read the scene and current objective.** The story panel identifies your chapter, location, and immediate goal.
 - **Make a decision when choices appear.** Choices can affect survival stats, items, relationships, and later story outcomes. Some options require an item and remain disabled without it.
-- **Read the result before continuing.** The game shows the narrative consequence and a `RESULT` summary of gains and losses.
+- **Read the result before continuing.** The game shows the narrative consequence and the names of any newly gained items.
 - **Choose Continue onward.** This advances to the next scene. Some scenes provide context, dialogue, or an unfolding event instead of a decision.
 - **Reach Haven by day 100.** The campaign follows a paced 100-day journey and concludes with your arrival in a genuinely safe sanctuary. Health reaching zero ends the run early.
 
@@ -44,9 +44,9 @@ The world readout also tracks your base, allies, lovers, enemies, items, materia
 
 ### Gains and losses
 
-Small signed amounts such as `+2` or `-0.62` appear beside changed stats after an action. The result summary includes actual net changes, including costs and applicable random events, rather than just the choice's reward. It can also report changes to items and relationships.
+Small signed amounts such as `+2` or `-0.62` appear beside changed stats after an action. The line beneath the narrative shows only newly gained item names and stays hidden when no item was gained. Stat badges show actual net changes, including costs and applicable random events.
 
-Indicators and the result summary clear on your next click. Green indicates a favorable change; red indicates an unfavorable one. For radiation and corruption, a decrease is favorable.
+Indicators and gained item names clear on your next click. Green indicates a favorable change; red indicates an unfavorable one. For radiation and corruption, a decrease is favorable.
 
 ### Difficulty
 

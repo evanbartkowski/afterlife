@@ -636,7 +636,6 @@ function clearOutcomeFeedback() {
 
 function showOutcomeFeedback(before) {
   clearOutcomeFeedback();
-  const changes = [];
   Object.entries(feedbackStats).forEach(([key, [id, label]]) => {
     const delta = Number((state[key] - before[key]).toFixed(2));
     if (!delta) return;
@@ -647,18 +646,11 @@ function showOutcomeFeedback(before) {
     badge.textContent = signed;
     badge.setAttribute('aria-label', `${label} ${signed}`);
     $(id).appendChild(badge);
-    changes.push(`${label} ${signed}${key === 'odds' ? ' percentage points' : ''}`);
   });
-  ['items', 'allies', 'lovers', 'enemies', 'spouses'].forEach((key) => {
-    state[key].filter((value) => !before[key].includes(value)).forEach((value) => changes.push(`+ ${key}: ${value}`));
-    before[key].filter((value) => !state[key].includes(value)).forEach((value) => changes.push(`- ${key}: ${value}`));
-  });
-  ['base', 'race'].forEach((key) => {
-    if (state[key] !== before[key]) changes.push(`${key}: ${before[key]} → ${state[key]}`);
-  });
+  const gainedItems = state.items.filter(item => !before.items.includes(item));
   const summary = $('choiceOutcome');
-  summary.textContent = `RESULT // ${changes.length ? changes.join(' · ') : 'No stat or inventory changes.'}`;
-  summary.hidden = false;
+  summary.textContent = gainedItems.join(' ? ');
+  summary.hidden = gainedItems.length === 0;
 }
 
 document.addEventListener('click', clearOutcomeFeedback, true);
