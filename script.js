@@ -194,6 +194,7 @@ const events = [
 ];
 
 const npcCatalog = [
+  { id: 'stella', name: 'Stella', adult: true, alive: true, role: 'Haven rescue radio operator', faction: 'Haven', preferences: { marriage: 'honesty and freely chosen commitment', boundaries: 'Rescue never creates a romantic obligation.' }, relationship: {} },
   { id: 'mara', name: 'Mara', adult: true, alive: true, role: 'Scout', faction: 'Rangers', jealousy: 22, preferences: { marriage: 'commitment and honesty', boundaries: 'No public scenes, no hidden debts.' }, relationship: {} },
   { id: 'vey', name: 'Vey', adult: true, alive: true, role: 'Elf scout', faction: 'Haven', jealousy: 18, preferences: { marriage: 'shared purpose', boundaries: 'No lies about obligations.' }, relationship: {} },
   { id: 'sable', name: 'Dr. Sable', adult: true, alive: true, role: 'Weather engineer', faction: 'Apex Labs', jealousy: 12, preferences: { marriage: 'mutual respect and ambition', boundaries: 'No emotional manipulation.' }, relationship: {} },
@@ -229,7 +230,7 @@ function clamp(value, min, max) {
 
 function defaultState() {
   return {
-    story: { seen: [] },
+    story: { seen: [], clues: [] },
     difficulty: 'survivor',
     scenario: 0,
     odds: 60,
@@ -526,14 +527,14 @@ function buildDynamicChoices() {
       state.food += 2;
       state.supplies += 2;
       state.odds = clamp(state.odds - 2, 0, 99);
-      state.day = Math.min(364, state.day + 1);
+      state.day = Math.min(99, state.day + 1);
       state.region = Math.min(regions.length - 1, Math.floor(state.day / 80));
       state.previousStats = beforeStats;
       state.sceneText = 'You leave the road to search the ruins. The water is cloudy and the food is stale, but both are better than an empty pack.';
       recordEvent('Foraging', 'You recovered food and water from a forgotten supply cache.');
     }
   });
-  getAliveAdultNpcs().filter((npc) => !state.story || (npc.id === 'mara' && state.story.metMara && state.story.mara !== 'exiled' && state.story.bond === 'romance')).forEach((npc) => {
+  getAliveAdultNpcs().filter((npc) => !state.story || (npc.id === 'stella' && state.day >= 100 && state.story.bond === 'romance')).forEach((npc) => {
     const rel = getRelationship(npc.id);
     if ((rel.attraction || 0) >= 35 && (rel.friendship || 0) >= 20) {
       choices.push({
@@ -758,7 +759,7 @@ function resolveRadiationThreshold() {
 function setDifficulty(key) {
   if (state.started) return;
   const mode = difficulties[key];
-  state.story = { seen: [] };
+  state.story = { seen: [], clues: [] };
   state.difficulty = key;
   state.odds = vary(mode.odds, 5);
   state.health = vary(mode.health, 6);
@@ -798,7 +799,7 @@ function setDifficulty(key) {
   state.deadNPCs = [];
   state.eventHistory = [];
   $('eventBanner').hidden = true;
-  $('statusMessage').textContent = `FIELD NOTE // ${mode.label} RUN INITIALIZED. SURVIVE TO DAY 365.`;
+  $('statusMessage').textContent = `FIELD NOTE // ${mode.label} RUN INITIALIZED. REACH HAVEN BY DAY 100.`;
   renderScenario();
 }
 
@@ -962,6 +963,10 @@ function applyStoryEffects(choice) {
   const effects = choice[6];
   if (!effects) return;
   if (effects.story) Object.assign(state.story, effects.story);
+  if (effects.item && /SURVEY|PLAN|COORDINATE|CHART|PHRASE/.test(effects.item)) {
+    state.story.clues ||= [];
+    if (!state.story.clues.includes(effects.item)) state.story.clues.push(effects.item);
+  }
   if (effects.removeLover) state.lovers = state.lovers.filter(name => name !== effects.removeLover);
   if (effects.removeAlly) state.allies = state.allies.filter(name => name !== effects.removeAlly);
   ['ally', 'friend', 'lover', 'enemy', 'item', 'sin'].forEach((key) => {
@@ -1033,7 +1038,7 @@ function choose(index) {
   state.health = Math.max(0, Math.min(100, state.health + choice[3]));
   state.radiation = Math.max(0, Math.min(100, state.radiation + choice[4]));
   state.luck = Math.max(0, Math.min(100, state.luck + Math.floor(Math.random() * 7) - 2));
-  state.day = Math.min(364, state.day + travelDays);
+  state.day = Math.min(99, state.day + travelDays);
   state.region = Math.min(regions.length - 1, Math.floor(state.day / 80));
   state.previousStats = beforeStats;
   applyStoryEffects(choice);
@@ -1049,8 +1054,9 @@ function choose(index) {
   renderStats();
   renderWorldState();
   showOutcomeFeedback(before);
+  renderCampaignContext(currentScene);
   const shortageNote = needs.damage ? ` SHORTAGE DAMAGE // -${needs.damage} HEALTH.` : '';
-  $('statusMessage').textContent = `FIELD NOTE // ${travelDays} DAY${travelDays === 1 ? '' : 'S'} ${currentScene.campaignId ? 'IN THE SETTLEMENT' : 'ON THE ROAD'}. DAY ${state.day} / 365. ${state.supplies.toFixed(1)} WATER, ${state.food.toFixed(1)} FOOD, ${state.radiation.toFixed(1)} RAD, ${state.health} HEALTH.${shortageNote}`;
+  $('statusMessage').textContent = `FIELD NOTE // ${travelDays} DAY${travelDays === 1 ? '' : 'S'} ON THE ROAD. DAY ${state.day} / 100. ${state.supplies.toFixed(1)} WATER, ${state.food.toFixed(1)} FOOD, ${state.radiation.toFixed(1)} RAD, ${state.health} HEALTH.${shortageNote}`;
   saveGame();
   if (radiationResult.status === 'death' || state.health <= 0) { showEnding(false); return; }
   // The campaign resolves at its epilogue, not in the middle of a choice.
@@ -1058,10 +1064,10 @@ function choose(index) {
   showInlineContinue(randomEvent ? `${choiceResult}\n\n${randomEvent[0]}\n${randomEvent[1]}${mutationNote}` : `${choiceResult}${mutationNote}`);
 }
 
-function showEnding(reached365 = false) {
-  const survived = state.health > 0 && reached365;
-  $('sceneTitle').textContent = survived ? 'DAY 365 // THE SUN RISES' : 'YOU DIED IN THE AFTERLIGHT';
-  $('sceneText').textContent = survived ? 'You wake to birdsong. Real birdsong. The radiation has not vanished, the ruins have not forgiven anyone, but you have outlasted the calendar that ended the old world. The settlement paints your name on its water tower: THE ONE WHO STAYED ALIVE.' : 'The road continues without you. Hunger, thirst, or the wounds you carried finally became heavier than your will to move.';
+function showEnding(reached100 = false) {
+  const survived = state.health > 0 && reached100;
+  $('sceneTitle').textContent = survived ? 'DAY 100 // WELCOME TO HAVEN' : 'YOU DIED IN THE AFTERLIGHT';
+  $('sceneText').textContent = survived ? 'The gates of Haven open. Clean water, a warm room, and a peaceful valley wait beyond them. For the first time since the apocalypse, you can sleep safely.' : 'The road continues without you. Hunger, thirst, or the wounds you carried finally became heavier than your will to move.';
   $('promptText').textContent = survived ? 'YOU SURVIVED THE AFTERLIGHT' : 'RUN OVER // RESTART REQUIRED';
   $('choices').innerHTML = '';
   if (!survived) {
@@ -1074,8 +1080,8 @@ function showEnding(reached365 = false) {
   }
   $('storyPanel').classList.toggle('outcome', true);
   $('storyPanel').classList.toggle('outcome--win', survived);
-  $('logLine').textContent = survived ? 'RUN COMPLETE // 365 DAYS SURVIVED' : 'RUN COMPLETE // SIGNAL LOST';
-  $('statusMessage').textContent = survived ? 'FIELD NOTE // THE CALENDAR ROLLED OVER. YOU DID NOT.' : 'FIELD NOTE // HEALTH REACHED ZERO. THE RUN IS OVER.';
+  $('logLine').textContent = survived ? 'RUN COMPLETE // HAVEN REACHED' : 'RUN COMPLETE // SIGNAL LOST';
+  $('statusMessage').textContent = survived ? 'FIELD NOTE // CLEAN WATER. A SAFE ROOM. YOU ARE HOME.' : 'FIELD NOTE // HEALTH REACHED ZERO. THE RUN IS OVER.';
 }
 
 function restart() {
@@ -1141,9 +1147,9 @@ function toggleTutorial(visible) {
 
 const briefingSlides = [
   ['BEFORE THE ASH', 'The old world ended in fire, but the radiation kept changing it after the flames went out.'],
-  ['THE LONG SILENCE', 'You were found beneath a collapsed relay station with no memory of the last three days. A brass key remained in your coat. Your own voice on a damaged recording warned you not to let Haven switch on AFTERLIFE.'],
+  ['THE LONG SILENCE', 'Your last shelter is gone. On a damaged radio, a woman named Stella promises that Haven is real: clean water, gardens, and a place to sleep safely. You have 100 days to follow her clues through the mountains.'],
   ['WHAT REMAINS', 'Settlements trade in water, bullets, old promises, and stranger things. Elves, mutants, zombies, and ordinary people all want a piece of tomorrow.'],
-  ['YOUR FIELD LOG', 'Before you enter the wastes, tell the field log what to call you and choose a starting difficulty. Follow the signal to Haven. Your choices will shape who trusts you, who stays, and who survives the coming winter.']
+  ['YOUR FIELD LOG', 'Before you enter the wastes, tell the field log what to call you and choose a starting difficulty. Follow the signal to Haven. Your choices will shape the route you take, the people you help, and the life waiting for you with Stella in Haven.']
 ];
 let briefingStep = 0;
 

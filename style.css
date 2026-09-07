@@ -278,3 +278,7 @@ h2 { min-height: 84px; margin: 25px 0 13px; max-width: 700px; font-size: clamp(2
   .contact-name, .pulse, .pulse::before { animation: none; }
   .contact-name { color: var(--cyan); text-shadow: 0 0 8px var(--cyan); }
 }
+.radio-log { margin: 0 0 20px; padding: 12px 14px; border: 1px solid rgba(119,244,255,.25); background: rgba(119,244,255,.05); font: 11px/1.7 'DM Mono', monospace; overflow-wrap: anywhere; }
+.radio-log p { margin: 0; }
+#radioMessage { color: var(--cyan); }
+#routeClues { margin-top: 8px; color: var(--dim); }

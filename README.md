@@ -2,7 +2,7 @@
 
 **Afterlight: A Survival Story** is the browser game in this repository: a single-player, text-based survival adventure set in a post-apocalyptic world. Follow an ordered, five-act campaign while managing supplies, navigating relationships, and dealing with unpredictable encounters on the road.
 
-You wake with three days missing from your memory, a brass key in your coat, and a warning recorded in your own voice. The settlement of Haven depends on a failing storm shield. Discover what happened, decide whom to trust, and survive long enough to face the winter storm.
+Your last shelter is gone. Stella, a rescue radio operator broadcasting from Haven, promises a real sanctuary with clean water, gardens, medical care, and peace. Follow her messages and verify the clues to reach it by day 100, before the mountain passage closes.
 
 ## Play locally
 
@@ -25,7 +25,7 @@ No build step, package installation, or server is required to play. The game use
 - **Make a decision when choices appear.** Choices can affect survival stats, items, relationships, and later story outcomes. Some options require an item and remain disabled without it.
 - **Read the result before continuing.** The game shows the narrative consequence and a `RESULT` summary of gains and losses.
 - **Choose Continue onward.** This advances to the next scene. Some scenes provide context, dialogue, or an unfolding event instead of a decision.
-- **Reach the final storm and epilogue.** The campaign concludes on day 365 if you survive. Health reaching zero ends the run early.
+- **Reach Haven by day 100.** The campaign follows a paced 100-day journey and concludes with your arrival in a genuinely safe sanctuary. Health reaching zero ends the run early.
 
 There is no real-time countdown. Take as long as you want to read. Use the mouse or keyboard to activate buttons, and scroll within the story panel to read longer scenes.
 
@@ -58,13 +58,23 @@ Difficulty is locked once the run starts. Use **Restart Run** to begin again wit
 
 The main campaign has five acts and a consequence-based epilogue. Its key scenes follow a fixed sequence, allowing discoveries and relationships to build on earlier events.
 
-Recurring characters include Mara, a scout; Dr. Sable, a shield engineer; and Captain Oric, Haven's commander. Their interests do not always align with yours. Choices about honesty, loyalty, forgiveness, justice, and power can change later dialogue and the ending.
+Stella, a 29-year-old rescue radio operator from Haven, is your main contact. Calls gradually move from navigation and survival advice into personal conversations. Other travelers include the courier Ellis, his sister June, and the medic Nadi. The broker Rook uses stolen broadcasts to lure survivors off the real route. Your honesty, help for strangers, and protection of rescue frequencies affect trust and later scenes.
 
-Romance is optional. You can pursue a relationship, choose friendship, or keep your distance. The story includes adult themes such as grief, betrayal, violence, imprisonment, and moral responsibility, with non-explicit intimacy.
+Romance with Stella is optional and requires expressed interest and sufficient trust. You can become close friends or choose space for an independent life instead. Rescue and admission to Haven never depend on romance. The story includes adult themes such as grief, betrayal, exploitation, and responsibility, with non-explicit intimacy.
 
 Random encounters are inserted at journey breaks between campaign scenes. Additional interruptions can occur during ordinary encounters, while central campaign decisions remain uninterrupted. Foraging may appear as an alternative on ordinary choice scenes.
 
-Camp chapters move the calendar forward through periods of work, travel, and recovery. They restore health, reduce radiation, and bring food and water up to a minimum reserve. You do not need to click through 365 individual days. Mutating does not restart the campaign, and reaching the end does not reshuffle it into a new loop.
+Shelter chapters move the calendar forward through periods of travel and recovery. They restore health, reduce radiation, and bring food and water up to a minimum reserve. You do not need to click through 100 individual days. Mutating does not restart the campaign, and reaching the end does not reshuffle it into a new loop.
+
+### Radio clues and branching quests
+
+Radio messages are displayed as text in the story and a persistent radio log. Collected route clues remain in the route notes. The trail leads from a green milepost to a bell tower, then branches into a ridge-mirror crossing or an aqueduct pump-house rescue. Both yield the coordinate needed to locate a weather station and decode the hidden entrance to Haven.
+
+Messages are not always trustworthy: compare the sender and directions with verified clues. Your decisions determine whether you protect the private channel, help a convoy, scout ahead, or expose the route through an open broadcast.
+
+### Different lives in Haven
+
+Five ending titles reflect your choices: **A Home with Stella**, **The People You Brought Home**, **The Keeper of the Road**, **A Friend Beyond the Static**, and **A Room of Your Own**. The epilogue also recalls your chosen route, treatment of other survivors, and accountability. Haven remains a peaceful home in every successful ending; the differences concern your relationships and the life you build there.
 
 ## Controls and progress
 
@@ -100,4 +110,4 @@ node --check script.js
 node tests/campaign.test.cjs
 ```
 
-The campaign test runs 12 simulated playthroughs across the four difficulties and checks ordered progression, one-time narrative beats, mutation continuity, relationship consequences, and the finales. It uses a lightweight browser stub; it does not replace visual testing in a browser.
+The campaign test runs 12 simulated playthroughs across the four difficulties and checks the 100-day timeline, both quest routes, five ending titles, clue persistence, one-time supply grants, romance boundaries, and mutation continuity. It uses a lightweight browser stub; it does not replace visual testing in a browser.
