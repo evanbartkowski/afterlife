@@ -40,13 +40,13 @@ There is no real-time countdown. Take as long as you want to read. Use the mouse
 | Food | Consumed as time passes during choices and travel. Running out can cause shortage damage. |
 | Luck | Influences changes to survival odds and can itself change through decisions and events. |
 
-The world readout also tracks your base, allies, lovers, enemies, items, materials, reputation, morality, and gold. These fields describe your survivor and the consequences accumulated during the run; not every resource has a dedicated shop or management screen.
+The world readout tracks your base, race, humanity, allies, lovers, enemies, items, materials, reputation, and gold. Base benefits appear under the radio log. Not every resource has a dedicated shop or management screen.
 
 ### Gains and losses
 
 Small signed amounts such as `+2` or `-0.62` appear beside changed stats after an action. The line beneath the narrative shows only newly gained item names and stays hidden when no item was gained. Stat badges show actual net changes, including costs and applicable random events.
 
-Indicators and gained item names clear on your next click. Green indicates a favorable change; red indicates an unfavorable one. For radiation and corruption, a decrease is favorable.
+Indicators and gained item names clear on your next click. Green indicates a favorable change; red indicates an unfavorable one. Less radiation and more humanity are favorable. Food and water balances use whole or half-rations, displayed as 3 or 2.5 instead of long decimals.
 
 ### Difficulty
 
@@ -76,6 +76,38 @@ Messages are not always trustworthy: compare the sender and directions with veri
 
 Five ending titles reflect your choices: **A Home with Stella**, **The People You Brought Home**, **The Keeper of the Road**, **A Friend Beyond the Static**, and **A Room of Your Own**. The epilogue also recalls your chosen route, treatment of other survivors, and accountability. Haven remains a peaceful home in every successful ending; the differences concern your relationships and the life you build there.
 
+## Fantasy quests and consequences
+
+The Haven route now includes an enchanted orchard, a transformative moon pool, a winter-vault heist, and a Bell Court bargain involving a stolen soul. Their consequences return in later shelter encounters and the epilogue. Important decisions display an aftermath paragraph explaining new enemies, allies, changed relationships, race traits, base benefits, or lost humanity. Newly gained item names still appear separately.
+
+**Humanity** runs from 0 to 100. Robbery, exploitation, and binding an innocent person?s shadow reduce it. Restitution can restore some compassion, but does not automatically erase enemies or restart broken romances. Changing species does not itself reduce humanity. Haven remains a sanctuary, with accountability for the people harmed along the way.
+
+### Race traits
+
+| Race | Benefit and cost |
+| --- | --- |
+| Human | Standard survival rules. |
+| Moon elf | Daily radiation gain reduced by 0.25, with a minimum of zero. |
+| Ash revenant | Direct choice wounds are halved, rounded down; daily food consumption increases by 0.5. |
+
+Radiation can still cause mutation. Race changes preserve story progress. Food and water continue to use half-unit increments.
+
+### Support bases
+
+Your base is a network of shelters and couriers along the road. Choose one early, then change it at the weather station. Only the active base supplies its mechanical benefits.
+
+| Base | Active benefits |
+| --- | --- |
+| Moss Caravan | Foraging yields one extra food; shelter food reserves refill to at least 12. |
+| Warden Outposts | Travel water use reduced by 0.5 per day; daily radiation gain reduced by 0.25. Difficulty-based water costs still apply. |
+| Moon Shrines | Six extra health restored at shelter stops; daily food use reduced by 0.5, to a minimum of 0.5. |
+
+### Other relationships
+
+Lyria is an adult moon elf you can free from an enchanted orchard. Nyx is a 31-year-old smuggler involved in the winter-vault quest. Both have friendship and optional romance paths. Romance is exclusive in this version: choosing another partner ends the earlier commitment openly. Stella respects an existing relationship and remains a friend and rescue contact.
+
+Lyria and Nyx add two ending titles, **An Orchard Under Two Moons** and **Nothing Left to Steal**, bringing the total to seven. Crimes, restitution, your race, and your base add further epilogue variations.
+
 ## Controls and progress
 
 | Control | Purpose |
@@ -95,6 +127,7 @@ Five ending titles reflect your choices: **A Home with Stella**, **The People Yo
 | `index.html` | Page structure, setup screen, stat readouts, and story panel. |
 | `style.css` | Visual design, responsive layout, and stat feedback styling. |
 | `campaign.js` | Ordered campaign, branching dialogue, journey encounters, and epilogues. |
+| `expansion.js` | Connected fantasy quests, support bases, humanity, and additional relationships. |
 | `script.js` | Game state, survival rules, choice resolution, UI rendering, and music controls. |
 | `media/` | Game artwork. |
 | `music/` | Background audio tracks. |
@@ -107,7 +140,8 @@ With Node.js installed, run these commands from the repository folder:
 ```sh
 node --check campaign.js
 node --check script.js
+node --check expansion.js
 node tests/campaign.test.cjs
 ```
 
-The campaign test runs 12 simulated playthroughs across the four difficulties and checks the 100-day timeline, both quest routes, five ending titles, clue persistence, one-time supply grants, romance boundaries, and mutation continuity. It uses a lightweight browser stub; it does not replace visual testing in a browser.
+The campaign test runs 12 expanded playthroughs across the four difficulties and checks the 100-day timeline, both quest routes, seven ending titles, clue persistence, half-rations, base benefits, crime and restitution, romance boundaries, decision aftermath, item-only rewards, and mutation continuity. It uses a lightweight browser stub; it does not replace visual testing in a browser.

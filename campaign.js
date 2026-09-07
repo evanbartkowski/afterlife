@@ -110,7 +110,8 @@ const campaignBeats = [
         storyChoice('Ask her to be part of your life as a close friend', '"Gladly." Stella promises to show you the town’s worst bakery and best swimming spot. You have found someone who knows where you have been and still wants to hear what happens next.', { bond: 'friendship' }, { ally: 'STELLA', removeLover: 'STELLA' }),
         storyChoice('Thank her and ask for space to start over independently', 'She understands. "My door is open. You decide when to knock." The relief is not having to make your entire future fit inside one relationship.', { bond: 'independent' }, { removeLover: 'STELLA' })
       ];
-      if (state.story.interest === 'romance' && stellaTrustScore() >= 2) choices.unshift(storyChoice('Tell her you want that date; kiss her when she leans closer', 'She smiles, asks "May I?", and you say yes. The kiss is quiet and a little awkward, followed by laughter. Tomorrow you will keep walking. After that, there can be ordinary days together.', { bond: 'romance' }, { ally: 'STELLA', lover: 'STELLA', luck: 3 }));
+      if (state.story.partner && state.story.partner !== 'STELLA') choices[0] = storyChoice('Keep your commitment to ' + state.story.partner + ' and welcome Stella as a friend', 'Stella respects your relationship. She offers friendship without asking you to choose between kindness and loyalty.', {bond:'friendship'}, {ally:'STELLA'});
+      if (!state.story.partner && state.story.interest === 'romance' && stellaTrustScore() >= 2) choices.unshift(storyChoice('Tell her you want that date; kiss her when she leans closer', 'She smiles, asks "May I?", and you say yes. The kiss is quiet and a little awkward, followed by laughter. Tomorrow you will keep walking. After that, there can be ordinary days together.', { bond: 'romance' }, { ally: 'STELLA', lover: 'STELLA', luck: 3 }));
       return choices;
     } },
   { id: 'morning', act: 'EPILOGUE // DAY 100', title: 'HAVEN', kind: 'ending', day: 100, region: 7,
@@ -122,6 +123,8 @@ function stellaTrustScore() {
   return Number(s.honesty === 'open') + Number(s.passage === 'helped') + Number(s.channel !== 'sold') + Number(s.accountability === 'accepted');
 }
 function campaignEndingTitle() {
+  if (state.story.partner === 'LYRIA') return 'AN ORCHARD UNDER TWO MOONS';
+  if (state.story.partner === 'NYX') return 'NOTHING LEFT TO STEAL';
   if (state.story.bond === 'romance') return 'A HOME WITH STELLA';
   if (state.story.convoy === 'led' && state.story.arrival === 'together') return 'THE PEOPLE YOU BROUGHT HOME';
   if (state.story.arrival === 'scout') return 'THE KEEPER OF THE ROAD';
@@ -140,6 +143,7 @@ function campaignEpilogue() {
   else if (s.bond === 'friendship') paragraphs.push('Stella saves you a chair at her kitchen table. There is no unspoken romantic debt, only a friendship that made it through the static. Some evenings you help at the radio desk. Others you talk until the tea goes cold.');
   else paragraphs.push('You settle into a room overlooking the garden. Stella waves when you pass the radio station and respects the space you asked for. Your days belong to you: new friends, quiet work, and the possibility of a life you have not decided on yet.');
   if (s.honesty === 'lie') paragraphs.push(s.accountability === 'accepted' ? 'You apologize to Ellis and June without asking them to forget the shed. June eventually invites you to help in the garden. Trust returns through small acts, not a speech at the gate.' : 'Ellis and June keep their distance. Safety does not erase the choices you made outside it. Haven gives you time to become someone different, if you choose.');
+  if (expansionEpilogue()) paragraphs.push(expansionEpilogue());
   paragraphs.push('On your first night, you leave the radio off. In the morning, birds wake you.');
   return paragraphs.join('\n\n');
 }
@@ -177,8 +181,8 @@ function renderCampaignBeat(scene) {
     if (scene.radio) state.story.lastRadio = scene.radio;
     if (scene.clue) { state.story.clues ||= []; if (!state.story.clues.includes(scene.clue)) state.story.clues.push(scene.clue); }
     if (scene.camp) {
-      state.food = Math.max(state.food, 10); state.supplies = Math.max(state.supplies, 12);
-      state.health = Math.min(100, state.health + 12); state.radiation = Math.max(0, state.radiation - 12);
+      state.food = Math.max(state.food, activeBase().food || 10); state.supplies = Math.max(state.supplies, 12);
+      state.health = Math.min(100, state.health + 12 + (activeBase().healing || 0)); state.radiation = Math.max(0, state.radiation - 12);
     }
     if (scene.effects) { applyStoryEffects([null,0,0,0,0,'',scene.effects]); state.health = clamp(state.health + (scene.effects.health || 0),0,100); }
   }

@@ -65,6 +65,8 @@
       <span class="world-entry world-entry--materials"><span class="entry-label">MATERIALS</span><strong id="materialsValue">0</strong></span>
       <span class="world-entry world-entry--reputation"><span class="entry-label">REPUTATION</span><strong id="reputationValue">0</strong></span>
       <span class="world-entry world-entry--morality"><span class="entry-label">MORALITY</span><strong id="moralityValue">HUMAN</strong></span>
+      <span class="world-entry"><span class="entry-label">RACE</span><strong id="raceValue">HUMAN</strong></span>
+      <span class="world-entry"><span class="entry-label">HUMANITY</span><strong id="humanityValue">100</strong></span>
       <span class="world-entry world-entry--gold"><span class="entry-label">GOLD</span><strong id="crownsValue">25</strong></span>
     </div>
     <dialog class="tutorial-panel" id="tutorialPanel" aria-labelledby="tutorialTitle">
@@ -77,12 +79,14 @@
       <p class="campaign-context" id="campaignContext"></p>
       <aside class="radio-log" aria-label="Radio message and route clues">
         <p id="radioMessage">RADIO // Waiting for a verified signal.</p>
+        <p id="baseBuffValue"></p>
         <p id="routeClues">ROUTE NOTES // No verified clues yet.</p>
       </aside>
       <div class="story-meta"><span id="sceneType" class="scene-type">ENCOUNTER</span><span id="location" class="location-readout">OUTSKIRTS // SECTOR 7</span></div>
       <h2 id="sceneTitle">A LIGHT IN THE DEAD RAIL YARD</h2>
       <p id="sceneText">Your cracked radio catches a voice beneath the static. Someone is broadcasting from the old rail yard, offering shelter for anyone who can hear. The yard is two hours east. Between you and the signal: a minefield that nobody has bothered to map since the bombs fell.</p>
       <div class="story-interlude" id="storyInterlude" hidden></div>
+      <p class="decision-aftermath" id="decisionAftermath" hidden></p>
       <p class="choice-outcome" id="choiceOutcome" hidden></p>
       <p class="prompt" id="promptText">What do you do?</p>
       <div class="choices" id="choices"></div>
@@ -92,6 +96,7 @@
   </main>
   <audio id="backgroundMusic" preload="auto" aria-hidden="true"></audio>
   <script src="campaign.js"></script>
+  <script src="expansion.js"></script>
   <script src="script.js"></script>
 </body>
 </html>

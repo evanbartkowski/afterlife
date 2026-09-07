@@ -524,7 +524,7 @@ function buildDynamicChoices() {
     label: 'Forage for food and water',
     apply: () => {
       const beforeStats = { oddsValue: state.odds, healthValue: state.health, radiationValue: state.radiation, suppliesValue: state.supplies, foodValue: state.food, luckValue: state.luck };
-      state.food += 2;
+      state.food += 2 + (activeBase().forage || 0);
       state.supplies += 2;
       state.odds = clamp(state.odds - 2, 0, 99);
       state.day = Math.min(99, state.day + 1);
@@ -621,7 +621,7 @@ const feedbackStats = {
   radiation: ['radiationValue', 'Radiation'], supplies: ['suppliesValue', 'Water'],
   food: ['foodValue', 'Food'], luck: ['luckValue', 'Luck'],
   materials: ['materialsValue', 'Materials'], reputation: ['reputationValue', 'Reputation'],
-  crowns: ['crownsValue', 'Gold'], evil: ['moralityValue', 'Corruption']
+  crowns: ['crownsValue', 'Gold'], evil: ['humanityValue', 'Humanity']
 };
 
 function captureOutcome() {
@@ -637,10 +637,10 @@ function clearOutcomeFeedback() {
 function showOutcomeFeedback(before) {
   clearOutcomeFeedback();
   Object.entries(feedbackStats).forEach(([key, [id, label]]) => {
-    const delta = Number((state[key] - before[key]).toFixed(2));
+    const delta = Number(((state[key] - before[key]) * (key === 'evil' ? -10 : 1)).toFixed(2));
     if (!delta) return;
     const signed = `${delta > 0 ? '+' : ''}${delta}`;
-    const favorable = (key === 'radiation' || key === 'evil') ? delta < 0 : delta > 0;
+    const favorable = key === 'radiation' ? delta < 0 : delta > 0;
     const badge = document.createElement('small');
     badge.className = `stat-delta ${favorable ? 'delta-gain' : 'delta-loss'}`;
     badge.textContent = signed;
@@ -713,23 +713,27 @@ function renderWorldState() {
   $('materialsValue').textContent = state.materials;
   $('crownsValue').textContent = state.crowns;
   $('reputationValue').textContent = state.reputation;
-  $('moralityValue').textContent = state.evil > 4 ? 'BECOMING EVIL' : state.evil > 1 ? 'COMPROMISED' : state.race;
+  $('moralityValue').textContent = humanity() <= 40 ? 'HARDENED' : humanity() < 80 ? 'COMPROMISED' : 'HOPEFUL';
+  $('raceValue').textContent = state.race;
+  $('humanityValue').textContent = humanity();
+  $('baseBuffValue').textContent = `BASE BENEFIT // ${activeBase().label || 'Choose a support network to gain its benefits.'}`;
 }
 
 function applyTravelNeeds(travelDays) {
   const foodBefore = state.food;
   const waterBefore = state.supplies;
   const mode = difficulties[state.difficulty];
-  const foodDrain = (state.mutationActive ? 1.05 : .72) * travelDays;
-  const waterDrain = (state.mutationActive ? .95 : .62) * travelDays;
+  const foodDrain = Math.max(.5, (state.mutationActive || state.race === 'ASH REVENANT' ? 1.5 : 1) - (activeBase().foodSaving || 0)) * travelDays;
+  const waterDrain = Math.max(0, (state.mutationActive ? 1 : .5) - (activeBase().water || 0)) * travelDays;
   state.food = Math.max(0, state.food - foodDrain);
   state.supplies = Math.max(0, state.supplies - waterDrain);
-  state.radiation = clamp(state.radiation + mode.radiationDrift * travelDays, 0, 100);
+  const radiationDrift = Math.max(0, mode.radiationDrift - (activeBase().radiation || 0) - (state.race === 'MOON ELF' ? .25 : 0));
+  state.radiation = clamp(state.radiation + radiationDrift * travelDays, 0, 100);
   const foodShortage = foodBefore <= 0;
   const waterShortage = waterBefore <= 0;
   const damage = (foodShortage ? 2 : 0) + (waterShortage ? 2 : 0);
   if (damage) state.health = Math.max(0, state.health - damage * travelDays);
-  return { foodShortage, waterShortage, damage: damage * travelDays, radiationDrift: mode.radiationDrift * travelDays };
+  return { foodShortage, waterShortage, damage: damage * travelDays, radiationDrift: radiationDrift * travelDays };
 }
 
 function resolveRadiationThreshold() {
@@ -859,6 +863,7 @@ function renderInterlude() {
 }
 
 function renderScenario() {
+  $('decisionAftermath').hidden = true;
   const scene = resolveCampaignScene(state.route[state.scenario] || { campaignId: 'morning' });
   state.route[state.scenario] = scene;
   const [region, anomaly] = regions[state.region];
@@ -959,7 +964,17 @@ function applyStoryEffects(choice) {
     state.story.clues ||= [];
     if (!state.story.clues.includes(effects.item)) state.story.clues.push(effects.item);
   }
-  if (effects.removeLover) state.lovers = state.lovers.filter(name => name !== effects.removeLover);
+  if (effects.removeLover) {
+    state.lovers = state.lovers.filter(name => name !== effects.removeLover);
+    if (state.story.partner === effects.removeLover) state.story.partner = null;
+  }
+  if (effects.removeItem) {
+    if (effects.removeItem === 'BOUND SOUL-BELL' && state.items.includes(effects.removeItem)) state.odds = Math.max(0, state.odds - 8);
+    state.items = state.items.filter(item => item !== effects.removeItem);
+  }
+  if (effects.partner) choosePartner(effects.partner);
+  if (effects.lover === 'STELLA') choosePartner('STELLA');
+  if (effects.crowns) addCurrency(effects.crowns);
   if (effects.removeAlly) state.allies = state.allies.filter(name => name !== effects.removeAlly);
   ['ally', 'friend', 'lover', 'enemy', 'item', 'sin'].forEach((key) => {
     if (effects[key]) {
@@ -971,9 +986,9 @@ function applyStoryEffects(choice) {
   state.materials += effects.materials || 0;
   state.food = Math.max(0, state.food + (effects.food || 0));
   state.supplies = Math.max(0, state.supplies + (effects.supplies || 0));
-  if (effects.race) state.race = effects.race;
+  if (effects.race) { state.race = effects.race; state.mutationActive = effects.race === 'MUTANT'; }
   state.reputation += effects.reputation || 0;
-  state.evil += effects.evil || 0;
+  state.evil = clamp(state.evil + (effects.evil || 0), 0, 10);
   state.odds = Math.max(0, Math.min(99, state.odds + (effects.odds || 0)));
   state.luck = Math.max(0, Math.min(100, state.luck + (effects.luck || 0)));
   state.radiation = Math.max(0, Math.min(100, state.radiation + (effects.radiation || 0)));
@@ -981,7 +996,7 @@ function applyStoryEffects(choice) {
 }
 
 function renderStats() {
-  const values = { oddsValue: `${state.odds}%`, healthValue: state.health, radiationValue: state.radiation.toFixed(1), suppliesValue: state.supplies.toFixed(1), foodValue: state.food.toFixed(1), luckValue: state.luck };
+  const values = { oddsValue: `${state.odds}%`, healthValue: state.health, radiationValue: state.radiation.toFixed(1), suppliesValue: formatRations(state.supplies), foodValue: formatRations(state.food), luckValue: state.luck };
   Object.entries(values).forEach(([id, value]) => {
     const element = $(id);
     const numericValue = Number.parseFloat(value);
@@ -1024,10 +1039,11 @@ function choose(index) {
   const mode = difficulties[state.difficulty];
   const beforeStats = { oddsValue: state.odds, healthValue: state.health, radiationValue: state.radiation, suppliesValue: state.supplies, foodValue: state.food, luckValue: state.luck };
   const luckSwing = Math.floor((Math.random() * 9) - 4) + Math.floor(state.luck / 25);
-  const travelDays = state.route[state.scenario].campaignId ? 1 : (Math.random() < 0.2 ? 2 + Math.floor(Math.random() * 3) : 1);
+  const shelterDecision = ['wayhouse','connection','transformation','lyria_night','nyx_night','newbase','promise'].includes(state.route[state.scenario].campaignId);
+  const travelDays = shelterDecision ? 0 : state.route[state.scenario].campaignId ? 1 : (Math.random() < 0.2 ? 2 + Math.floor(Math.random() * 3) : 1);
   state.odds = Math.max(0, Math.min(99, state.odds + choice[1] + luckSwing));
-  state.supplies = Math.max(0, state.supplies + choice[2] - mode.drain);
-  state.health = Math.max(0, Math.min(100, state.health + choice[3]));
+  state.supplies = Math.max(0, state.supplies + choice[2] - (travelDays ? mode.drain : 0));
+  state.health = Math.max(0, Math.min(100, state.health + (state.race === 'ASH REVENANT' && choice[3] < 0 ? Math.ceil(choice[3] / 2) : choice[3])));
   state.radiation = Math.max(0, Math.min(100, state.radiation + choice[4]));
   state.luck = Math.max(0, Math.min(100, state.luck + Math.floor(Math.random() * 7) - 2));
   state.day = Math.min(99, state.day + travelDays);
@@ -1048,10 +1064,11 @@ function choose(index) {
   showOutcomeFeedback(before);
   renderCampaignContext(currentScene);
   const shortageNote = needs.damage ? ` SHORTAGE DAMAGE // -${needs.damage} HEALTH.` : '';
-  $('statusMessage').textContent = `FIELD NOTE // ${travelDays} DAY${travelDays === 1 ? '' : 'S'} ON THE ROAD. DAY ${state.day} / 100. ${state.supplies.toFixed(1)} WATER, ${state.food.toFixed(1)} FOOD, ${state.radiation.toFixed(1)} RAD, ${state.health} HEALTH.${shortageNote}`;
+  $('statusMessage').textContent = `FIELD NOTE // ${travelDays} DAY${travelDays === 1 ? '' : 'S'} ON THE ROAD. DAY ${state.day} / 100. ${formatRations(state.supplies)} WATER, ${formatRations(state.food)} FOOD, ${state.radiation.toFixed(1)} RAD, ${state.health} HEALTH.${shortageNote}`;
   saveGame();
   if (radiationResult.status === 'death' || state.health <= 0) { showEnding(false); return; }
   // The campaign resolves at its epilogue, not in the middle of a choice.
+  showDecisionAftermath(before);
   const mutationNote = radiationResult.status === 'mutation' ? `\n\n${radiationResult.message}` : '';
   showInlineContinue(randomEvent ? `${choiceResult}\n\n${randomEvent[0]}\n${randomEvent[1]}${mutationNote}` : `${choiceResult}${mutationNote}`);
 }
@@ -1137,6 +1154,21 @@ function toggleTutorial(visible) {
   $('tutorialButton').setAttribute('aria-expanded', String(panel.open));
 }
 
+function formatRations(value) { return String(value); }
+function showDecisionAftermath(before) {
+  const notes = [];
+  if (state.base !== before.base) notes.push('Your support base is now ' + state.base + '. ' + activeBase().label + '.');
+  if (state.race !== before.race) notes.push('You are now ' + state.race + '. ' + (state.race === 'MOON ELF' ? 'Daily radiation gain falls by 0.25.' : state.race === 'ASH REVENANT' ? 'Direct choice wounds are halved, rounded down; you consume 0.5 extra food per day.' : 'Your body uses normal human survival rules.'));
+  const loss = humanity() - clamp(100 - before.evil * 10, 0, 100);
+  if (loss) notes.push('Humanity ' + (loss > 0 ? '+' : '') + loss + '. ' + (loss < 0 ? 'The people affected will remember this.' : 'Making amends begins to restore your compassion.'));
+  for (const [key, label] of [['enemies','New enemy'],['allies','New ally'],['lovers','New romantic partner']]) {
+    state[key].filter(name => !before[key].includes(name)).forEach(name => notes.push(label + ': ' + name + '.'));
+  }
+  before.lovers.filter(name => !state.lovers.includes(name)).forEach(name => notes.push('Your romance with ' + name + ' has ended.'));
+  if (state.story.vault !== before.story.vault) notes.push(state.story.vault === 'stolen' ? 'Those supplies belonged to families. Their loss will follow you to the mountain shelters.' : 'The medicine reaches its owners. Word of your decision travels ahead of you.');
+  const panel = $('decisionAftermath'); panel.textContent = notes.join(' '); panel.hidden = !notes.length;
+}
+
 const briefingSlides = [
   ['BEFORE THE ASH', 'The old world ended in fire, but the radiation kept changing it after the flames went out.'],
   ['THE LONG SILENCE', 'Your last shelter is gone. On a damaged radio, a woman named Stella promises that Haven is real: clean water, gardens, and a place to sleep safely. You have 100 days to follow her clues through the mountains.'],
@@ -1180,4 +1212,3 @@ $('tutorialPanel').addEventListener('close', () => {
 });
 renderBriefing();
 setDifficulty(state.difficulty);
-

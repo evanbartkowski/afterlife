@@ -282,3 +282,5 @@ h2 { min-height: 84px; margin: 25px 0 13px; max-width: 700px; font-size: clamp(2
 .radio-log p { margin: 0; }
 #radioMessage { color: var(--cyan); }
 #routeClues { margin-top: 8px; color: var(--dim); }
+
+.decision-aftermath { padding: 12px 14px; border-left: 2px solid var(--amber); color: var(--bright); background: rgba(255,209,102,.06); font: 12px/1.7 'DM Mono', monospace; }
