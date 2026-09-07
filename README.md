@@ -108,6 +108,10 @@ Lyria is an adult moon elf you can free from an enchanted orchard. Nyx is a 31-y
 
 Lyria and Nyx add two ending titles, **An Orchard Under Two Moons** and **Nothing Left to Steal**, bringing the total to seven. Crimes, restitution, your race, and your base add further epilogue variations.
 
+### Fatal decisions
+
+Eight unique death outcomes are attached to dangerous choices along the route. Scene text gives a warning and the option is marked **LETHAL RISK**. Selecting one ends the run immediately, regardless of health or race, and shows its own narrative ending. Some descriptions are gruesome. Safe alternatives remain available. Death prevents further progression until you restart.
+
 ## Controls and progress
 
 | Control | Purpose |

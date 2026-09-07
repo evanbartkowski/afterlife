@@ -231,6 +231,7 @@ function clamp(value, min, max) {
 function defaultState() {
   return {
     story: { seen: [], clues: [] },
+    runEnded: false,
     difficulty: 'survivor',
     scenario: 0,
     odds: 60,
@@ -756,6 +757,7 @@ function setDifficulty(key) {
   if (state.started) return;
   const mode = difficulties[key];
   state.story = { seen: [], clues: [] };
+  state.runEnded = false;
   state.difficulty = key;
   state.odds = vary(mode.odds, 5);
   state.health = vary(mode.health, 6);
@@ -949,7 +951,7 @@ function applyEventScene(scene) {
 }
 
 function nextScene() {
-  if (state.scenario >= state.route.length - 1) return;
+  if (state.runEnded || state.scenario >= state.route.length - 1) return;
   state.scenario += 1;
   state.lastEvent = false;
   $('eventBanner').hidden = true;
@@ -1032,10 +1034,19 @@ function maybeEvent() {
 }
 
 function choose(index) {
+  if (state.runEnded) return;
   const choiceList = state.route[state.scenario].choices;
   const choice = choiceList[index];
   if (!choice) return;
   const before = captureOutcome();
+  if (choice[6]?.death) {
+    state.health = 0;
+    renderStats();
+    showOutcomeFeedback(before);
+    showEnding(false, choice[6].death);
+    saveGame();
+    return;
+  }
   const mode = difficulties[state.difficulty];
   const beforeStats = { oddsValue: state.odds, healthValue: state.health, radiationValue: state.radiation, suppliesValue: state.supplies, foodValue: state.food, luckValue: state.luck };
   const luckSwing = Math.floor((Math.random() * 9) - 4) + Math.floor(state.luck / 25);
@@ -1073,10 +1084,18 @@ function choose(index) {
   showInlineContinue(randomEvent ? `${choiceResult}\n\n${randomEvent[0]}\n${randomEvent[1]}${mutationNote}` : `${choiceResult}${mutationNote}`);
 }
 
-function showEnding(reached100 = false) {
+function showEnding(reached100 = false, death = null) {
+  state.runEnded = true;
   const survived = state.health > 0 && reached100;
   $('sceneTitle').textContent = survived ? 'DAY 100 // WELCOME TO HAVEN' : 'YOU DIED IN THE AFTERLIGHT';
   $('sceneText').textContent = survived ? 'The gates of Haven open. Clean water, a warm room, and a peaceful valley wait beyond them. For the first time since the apocalypse, you can sleep safely.' : 'The road continues without you. Hunger, thirst, or the wounds you carried finally became heavier than your will to move.';
+  if (!survived && death) {
+    $('sceneTitle').textContent = death.title;
+    $('sceneText').textContent = death.text;
+    $('sceneType').textContent = 'FATAL DECISION';
+  }
+  $('decisionAftermath').hidden = true;
+  $('storyPanel').scrollTop = 0;
   $('promptText').textContent = survived ? 'YOU SURVIVED THE AFTERLIGHT' : 'RUN OVER // RESTART REQUIRED';
   $('choices').innerHTML = '';
   if (!survived) {

@@ -49,7 +49,7 @@ for (const difficulty of ['beginner', 'survivor', 'wasteland', 'impossible']) {
     test.run(`setDifficulty('${difficulty}')`);
     let steps = 0, previousDay = 1;
     while (!test.run("state.route[state.scenario].campaignId === 'morning'")) {
-      test.run(`if (state.route[state.scenario].choices) choose(Math.min(${branch}, state.route[state.scenario].choices.length - 1));`);
+      test.run(`if (state.route[state.scenario].choices) choose(Math.min(${branch}, state.route[state.scenario].choices.filter(c => !c[6]?.death).length - 1));`);
       assert(test.run('state.health > 0'), `${difficulty} branch ${branch} died at step ${steps}`);
       assert(test.run('Number.isInteger(state.food * 2) && Number.isInteger(state.supplies * 2)'), 'Rations left half-unit increments');
       assert(test.run('state.day') >= previousDay, 'Calendar went backwards');
@@ -131,3 +131,25 @@ systems.run("const snapshotItems=captureOutcome();state.items.push('TEST CHARM')
 assert.equal(systems.nodes.get('choiceOutcome').textContent,'TEST CHARM');
 assert.equal(systems.run('formatRations(3)'), '3');assert.equal(systems.run('formatRations(2.5)'), '2.5');
 console.log('PASS: 12 expanded playthroughs; half-rations; base benefits; crimes, humanity and restitution; three romance paths; seven ending titles; persistent item-only rewards and decision aftermath.');
+
+const fatalTitles = new Set();
+for (const route of ['ridge','aqueduct']) {
+  for (const id of ['crossing','lyria','transformation','vault','bellcourt','rook','lastmile']) {
+    const fatal = game();
+    fatal.run("state.story.route='"+route+"';state.race='ASH REVENANT';state.health=100;state.radiation=100;state.scenario=state.route.findIndex(s=>s.campaignId==='"+id+"');renderScenario()");
+    fatal.run('choose(state.route[state.scenario].choices.length - 1)');
+    assert.equal(fatal.run('state.health'),0);
+    assert.equal(fatal.run('state.runEnded'),true);
+    assert.equal(fatal.nodes.get('sceneType').textContent,'FATAL DECISION');
+    fatalTitles.add(fatal.nodes.get('sceneTitle').textContent);
+    const position=fatal.run('state.scenario');
+    fatal.run('nextScene();choose(0)');
+    assert.equal(fatal.run('state.scenario'),position);
+    assert.equal(fatal.run('state.health'),0);
+    fatal.run('restart()');
+    assert.equal(fatal.run('state.runEnded'),false);
+    assert(fatal.run('state.health > 0'));
+  }
+}
+assert.equal(fatalTitles.size,8);
+console.log('PASS: eight unique fatal outcomes, no mutation resurrection, no post-death progression, and restart recovery.');

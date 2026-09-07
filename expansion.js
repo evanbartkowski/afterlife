@@ -112,3 +112,55 @@ function insertExtraBeats(anchor) {
   }
 }
 for (const id of campaignBeats.map(beat => beat.id)) insertExtraBeats(id);
+// Fatal options are signposted in the scene and never replace an existing safe route.
+const fatalRoutes = {
+  crossing: () => state.story.route === 'ridge' ? {
+    warning: 'Above the safe crossing hangs an older bridge. Its anchor bolts are torn out, and a boot still dangles from the snapped handrail. Stella warns you that it cannot carry a person.',
+    label: 'Sprint over the broken upper bridge [LETHAL RISK]', title: 'THE LAST STEP',
+    text: 'The first boards hold. The sixth turns under your heel. Both anchor cables tear free, and the bridge folds around you like a closing hand. You strike the ravine wall before the river takes you.\n\nYour radio catches on a root above the water. Stella keeps asking you to answer long after the current has carried you out of sight.'
+  } : {
+    warning: 'A red wheel bypasses the pump sequence. A crushed maintenance helmet is wedged beneath it. The plate reads: FULL PRESSURE — EVACUATE CHAMBER BEFORE OPENING.',
+    label: 'Open the pressure bypass while standing in the chamber [LETHAL RISK]', title: 'UNDER PRESSURE',
+    text: 'The wheel gives you half a turn before the pipe splits. The jet drives you into the iron grate hard enough to break your ribs. Water fills the room before you can draw another breath.\n\nAbove the chamber, the indicator changes from red to green. The machine has completed its cycle. It has no way to know what it cost.'
+  },
+  lyria: () => ({
+    warning: 'The orchard’s hollow trunk smells of copper. Lyria warns you that the spirit feeds on anyone who climbs inside without a release contract. Bones are caught between its roots.',
+    label: 'Climb into the hollow trunk and seize its heart [LETHAL RISK]', title: 'A PLACE IN THE ORCHARD',
+    text: 'The trunk closes behind your shoulders. Roots pierce your coat and tighten beneath your ribs, lifting you until your feet leave the ground. You try to scream; the tree fills your mouth with white blossoms.\n\nBy morning a new branch leans over the path. It carries your radio, still whispering directions to Haven.'
+  }),
+  transformation: () => ({
+    warning: 'A fourth reflection lies beneath the others with no face. The keeper covers it with a black cloth. "That is not a race. It is the pool’s hunger. Do not give it your name."',
+    label: 'Give your true name to the faceless reflection [LETHAL RISK]', title: 'THE PERSON WHO WAS NOT THERE',
+    text: 'The reflection smiles with the mouth you have just lost. Your hands become translucent, then the steps behind them do too. The keeper grabs your sleeve and comes away holding an empty coat.\n\nAt Haven, Stella reaches for the microphone and forgets whom she meant to call. Only your handwriting remains on the route map: almost home.'
+  }),
+  vault: () => ({
+    warning: 'Nyx points to a jeweled reliquary apart from the supplies. Its lid is wired to a spring-loaded ward. "Touch the crates if you must. Do not touch that latch. There is no disarming it from this side."',
+    label: 'Pry open the warded reliquary for its jewels [LETHAL RISK]', title: 'THE VAULT COLLECTS',
+    text: 'The latch clicks softly. Steel needles punch through your hands and pin them to the lid. A second spring drives a blade up beneath your jaw. The jewels spill across the floor while you collapse against the box.\n\nNyx cannot reach the release. She takes your radio before the guards arrive, so Stella will hear the truth from someone who knew your name.'
+  }),
+  bellcourt: () => ({
+    warning: 'An empty throne stands behind the judge. Its silver arms end in hooks, and something beneath the cushion is breathing. The pilgrim whispers that mortals who sit there become the Court’s next meal.',
+    label: 'Sit on the empty throne and claim the Court [LETHAL RISK]', title: 'THE GUEST OF HONOR',
+    text: 'The throne accepts your weight. Its silver arms close around your wrists, and the cushion opens into a ring of teeth. The Court rises in perfect silence as the seat pulls you down.\n\nThe judge rings a little bell. When the next traveler enters, the throne is empty again.'
+  }),
+  rook: () => ({
+    warning: 'Rook’s truck has a second wire running from its ignition to a fuel can beneath the seat. He keeps one hand on a remote switch. Stella tells you quietly to let him disconnect it before you go near the cab.',
+    label: 'Rush the wired truck and turn the ignition yourself [LETHAL RISK]', title: 'THE WHITE ARROWS',
+    text: 'The engine turns once. Then the fuel beneath the seat flashes white. Heat slams the breath from your chest as the windshield bursts outward. You never reach the door handle.\n\nRook waits for the fire to settle before painting a fresh arrow toward the checkpoint. Your private channel remains silent.'
+  }),
+  lastmile: () => ({
+    warning: 'Beyond the marked route, a thin snow shelf seems to lead straight into the valley. A guide flashes a red lamp at it. Through a crack you can see open air beneath the snow.',
+    label: 'Ignore the red lamp and run across the snow shelf [LETHAL RISK]', title: 'WITH HAVEN IN SIGHT',
+    text: 'For three steps you can see the orchards. On the fourth, the entire shelf breaks loose. Snow and stone carry you into the ravine, burying your shout beneath the avalanche.\n\nAt the rescue lodge, Stella has set aside a clean blanket with your name on it. The guide who returns without you cannot make himself hand it back.'
+  })
+};
+for (const [id, build] of Object.entries(fatalRoutes)) {
+  const beat = campaignBeats.find(scene => scene.id === id);
+  const originalText = beat.text;
+  const originalChoices = beat.choices;
+  beat.text = () => `${typeof originalText === 'function' ? originalText() : originalText}\n\n${build().warning}`;
+  beat.choices = () => {
+    const fatal = build();
+    return [...(typeof originalChoices === 'function' ? originalChoices() : originalChoices), storyChoice(fatal.label, fatal.text, {}, { death: { title: fatal.title, text: fatal.text } })];
+  };
+}
