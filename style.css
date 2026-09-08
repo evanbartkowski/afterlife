@@ -297,3 +297,13 @@ h2 { min-height: 84px; margin: 25px 0 13px; max-width: 700px; font-size: clamp(2
 
 .top-actions { flex-wrap: wrap; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; } }
+
+.story-panel.special-event { border: 2px solid var(--special-color); box-shadow: 0 0 30px color-mix(in srgb, var(--special-color) 22%, transparent), inset 0 0 35px color-mix(in srgb, var(--special-color) 7%, transparent); background: linear-gradient(140deg, #182019, #09100d); }
+.special-danger { --special-color: #ff885c; }
+.special-hope { --special-color: #f7d477; }
+.special-arcane { --special-color: #c69bff; }
+.special-event-badge { display: inline-block; margin-bottom: 18px; padding: 8px 12px; border: 1px solid var(--special-color); color: var(--special-color); background: #09100d; font: 600 11px 'DM Mono', monospace; letter-spacing: .12em; }
+.special-event-badge[hidden] { display: none; }
+.special-event h2 { color: var(--special-color); text-shadow: 0 0 15px color-mix(in srgb, var(--special-color) 35%, transparent); }
+.special-event .choice { border-left: 4px solid var(--special-color); padding-block: 19px; }
+.special-event .choice:focus-visible { outline: 2px solid var(--special-color); outline-offset: 3px; }

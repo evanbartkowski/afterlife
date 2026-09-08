@@ -345,7 +345,7 @@ function saveGame() {
   try {
     const saveData = JSON.stringify({
       ...state,
-      route: state.route.map(({campaignId,calendarDay,expedition,encounter,region,act,objective,dispatch}) => ({campaignId,calendarDay,expedition,encounter,region,act,objective,dispatch})),
+      route: state.route.map(({campaignId,calendarDay,expedition,encounter,region,act,objective,dispatch,specialKind}) => ({campaignId,calendarDay,expedition,encounter,region,act,objective,dispatch,specialKind})),
       audio: null,
       previousStats: null,
       started: true,
@@ -883,6 +883,12 @@ function renderScenario() {
   if (/THREAT|BOSS|IMPOSSIBLE|MUTATION/.test(scene.type)) $('storyPanel').classList.add('prompt-danger');
   else if (/FIRST DECISION|QUEST|HAVEN GATE|SURVIVOR/.test(scene.type)) $('storyPanel').classList.add('prompt-important');
   else if (/ARCANE|ELVEN|WITCHLIGHT/.test(`${scene.type} ${scene.title}`)) $('storyPanel').classList.add('prompt-arcane');
+  $('storyPanel').classList.remove('special-event','special-danger','special-hope','special-arcane');
+  $('specialEventBadge').hidden = !scene.special;
+  if(scene.special) {
+    $('storyPanel').classList.add('special-event','special-'+scene.tone);
+    $('specialEventBadge').textContent = scene.tone==='danger' ? 'SURVIVAL CRISIS // HIGH IMPACT' : 'RARE EVENT // HIGH IMPACT';
+  }
   $('sceneTitle').textContent = scene.title;
   $('sceneText').textContent = personalizeNarrative(scene, scene.text || state.sceneText || '');
   $('promptText').textContent = 'WHAT DO YOU DO?';
@@ -949,7 +955,7 @@ function applyEventScene(scene) {
   state.radiation = Math.max(0, Math.min(100, state.radiation + (effects.radiation || 0)));
   state.supplies = Math.max(0, state.supplies + (effects.supplies || 0));
   state.luck = Math.max(0, Math.min(100, state.luck + (effects.luck || 0)));
-  state.materials += effects.materials || 0;
+  state.materials = Math.max(0, state.materials + (effects.materials || 0));
   $('promptText').textContent = 'EVENT // NO DECISION';
   $('statusMessage').textContent = 'FIELD NOTE // SOMETHING HAPPENED WHILE YOU WERE MOVING.';
   renderStats();
@@ -1070,7 +1076,7 @@ function choose(index) {
   applyStoryEffects(choice);
   const needs = applyTravelNeeds(travelDays);
   document.querySelectorAll('.choice').forEach((button) => { button.disabled = true; });
-  const randomEvent = state.route[state.scenario].campaignId ? null : maybeEvent();
+  const randomEvent = (state.route[state.scenario].campaignId || state.route[state.scenario].special) ? null : maybeEvent();
   const riskNote = resolveTravelRisk(choice);
   const radiationResult = state.health > 0 ? resolveRadiationThreshold() : {status: 'death'};
   const currentScene = state.route[state.scenario];

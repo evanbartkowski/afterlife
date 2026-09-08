@@ -214,3 +214,17 @@ assert(recklessLosses>lost,'Reckless scavenging was not more dangerous than caut
 const twice=game();twice.run("state.scenario=state.route.findIndex(s=>s.expedition);renderScenario();choose(0)");
 const foodOnce=twice.run('state.food');twice.run('choose(0)');assert.equal(twice.run('state.food'),foodOnce);
 console.log('Reckless strategy: '+recklessLosses+'/12 Survivor runs died. Duplicate choice resolution blocked.');
+
+const special=game(77);
+const specialDays=special.run('state.route.filter(s=>s.specialKind!==undefined).map(s=>s.calendarDay)');
+assert(specialDays.length>=8&&specialDays.length<=11);
+assert(specialDays.every((day,index)=>!index||day-specialDays[index-1]>=30));
+assert.equal(special.run('new Set(state.route.filter(s=>s.specialKind!==undefined).slice(0,6).map(s=>s.specialKind)).size'),6);
+special.run('state.scenario=state.route.findIndex(s=>s.specialKind!==undefined);renderScenario()');
+assert.equal(special.nodes.get('specialEventBadge').hidden,false);
+special.run('nextScene()');assert.equal(special.nodes.get('specialEventBadge').hidden,true);
+special.run("state.scenario=1;state.route[1]={expedition:true,calendarDay:2,encounter:0,specialKind:1,region:0,act:'TEST',objective:'Treatment'};state.health=30;state.food=20;state.supplies=20;renderScenario();choose(0)");
+assert.equal(special.run('state.health'),58);
+special.run("state.scenario=2;state.route[2]={expedition:true,calendarDay:3,encounter:0,specialKind:0,region:0,act:'TEST',objective:'Storm'};state.health=10;state.food=20;state.supplies=20;state.race='HUMAN';renderScenario();choose(2)");
+assert.equal(special.run('state.health'),0);assert.equal(special.run('state.runEnded'),true);
+console.log('PASS: rare-event spacing, all six event types, badge cleanup, large healing reward, and fatal crisis damage.');

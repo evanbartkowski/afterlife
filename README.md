@@ -124,6 +124,12 @@ Cautious searches offer smaller rewards. Risky searches offer larger hauls, with
 
 State snapshots omit the full route and audio object, saved routes use compact descriptors, and choice buttons ignore duplicate resolution. The interface respects reduced-motion preferences.
 
+### Rare high-impact events
+
+Around 8?11 special events occur during a run, spaced at least 30 days apart and without replacing story chapters. Six types cycle in shuffled order: the Black-Sun Storm, Last Mobile Hospital, Fallen Sky Ark, Siege of the Waystation, White Stag?s Spring, and Red Flood. Orange, gold, and violet borders distinguish crises, opportunities, and arcane phenomena; a HIGH IMPACT badge and accented choices make them stand out.
+
+Effects can include 28 healing, 35 radiation removal, large supply hauls, new allies, or severe injuries. Choice labels describe the major direct effects; normal daily costs and any marked injury roll still apply. Ordinary random interruptions do not stack on these scenes.
+
 ## Controls and progress
 
 | Control | Purpose |

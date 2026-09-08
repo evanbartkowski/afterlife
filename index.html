@@ -103,6 +103,7 @@
         <p><strong>Luck:</strong> influences changes to survival odds. Choices and events can also change luck itself.</p>
         <p><strong>Survival odds:</strong> a changing indicator of your situation, not a literal prediction or a separate instant-death roll. Your health is the immediate survival limit.</p>
         <p>Signed badges beside stats show actual changes: +2, -1, or -0.5. Green means favorable; red means unfavorable. Lower radiation and higher humanity are favorable. Badges and newly gained item names disappear on your next click.</p>
+        <p><strong>Special events:</strong> rare encounters use a thick colored border and a HIGH IMPACT badge. Orange marks a survival crisis, gold a rare opportunity, and violet an arcane phenomenon. Their rewards and injuries are much larger than ordinary encounters. Listed effects come before daily consumption; injury-risk choices can cause additional damage.</p>
         <p>Some decisions also show an aftermath paragraph explaining new allies, enemies, relationships, or other consequences. The item line lists only newly gained items.</p>
       </details>
       <details>
@@ -153,6 +154,7 @@
       </details>
     </dialog>
     <section class="story-panel" id="storyPanel" aria-live="polite">
+      <div class="special-event-badge" id="specialEventBadge" hidden></div>
       <p class="campaign-context" id="campaignContext"></p>
       <aside class="radio-log" aria-label="Radio message and route clues">
         <p id="radioMessage">RADIO // Waiting for a verified signal.</p>
