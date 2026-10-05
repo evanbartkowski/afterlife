@@ -11,17 +11,46 @@
 </head>
 <body>
   <section class="start-screen" id="startScreen" aria-labelledby="briefingTitle">
-    <div class="start-card">
+    <div class="start-card" style="max-width:420px;text-align:center;">
       <div class="eyebrow"><span class="pulse"></span> RECOVERED TRANSMISSION // 2094</div>
-      <h2 id="briefingTitle">BEFORE THE ASH</h2>
-      <p id="briefingText">The old world ended in fire, but the radiation kept changing it after the flames went out.</p>
-      <div class="briefing-progress"><span id="briefingProgress"></span></div>
-      <div class="name-field" id="nameField" hidden><label for="survivorName">YOUR NAME</label><input id="survivorName" maxlength="20" placeholder="Enter a name" autocomplete="off"><label class="difficulty-label">STARTING DIFFICULTY</label><div class="difficulty-buttons" id="startingDifficulty"></div><label class="difficulty-label">BACKGROUND</label><div class="difficulty-buttons" id="startingBackground"></div></div>
-      <div id="runActions" hidden style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
-        <button class="start-button" id="continueButton" type="button">CONTINUE RUN</button>
-        <button class="start-button" id="newRunButton" type="button" style="background:linear-gradient(135deg,#ff7b5d,#a8ff60);color:#040b07;">NEW RUN</button>
+      <h2 style="font-size:28px;margin:8px 0;">AFTERLIGHT</h2>
+      <p style="font-size:12px;color:#9bd982;margin-bottom:12px;">A post-apocalyptic survival story. Reach Haven by day 365.</p>
+
+      <!-- Account UI -->
+      <div id="accountSection">
+        <div id="loginForm">
+          <h3 style="font-size:14px;margin:8px 0;">LOGIN TO YOUR RUN</h3>
+          <input id="loginUser" placeholder="Username" style="width:90%;margin:4px;padding:6px;background:#0a120e;border:1px solid var(--line);color:#a8ff60;">
+          <input id="loginPass" type="password" placeholder="Password" style="width:90%;margin:4px;padding:6px;background:#0a120e;border:1px solid var(--line);color:#a8ff60;">
+          <button class="start-button" id="loginBtn" style="width:90%;margin:8px 0;">LOGIN &amp; CONTINUE</button>
+          <div style="font-size:10px;margin:4px;">
+            <a href="#" id="showCreate" style="color:#77f4ff;">Create new account</a> &nbsp; | &nbsp; 
+            <a href="#" id="playGuest" style="color:#77f4ff;">Play as Guest (no save)</a>
+          </div>
+        </div>
+        <div id="createForm" hidden>
+          <h3 style="font-size:14px;margin:8px 0;">CREATE ACCOUNT</h3>
+          <input id="createUser" placeholder="Choose username" style="width:90%;margin:4px;padding:6px;background:#0a120e;border:1px solid var(--line);color:#a8ff60;">
+          <input id="createPass" type="password" placeholder="Password" style="width:90%;margin:4px;padding:6px;background:#0a120e;border:1px solid var(--line);color:#a8ff60;">
+          <input id="createPass2" type="password" placeholder="Confirm password" style="width:90%;margin:4px;padding:6px;background:#0a120e;border:1px solid var(--line);color:#a8ff60;">
+          <button class="start-button" id="createBtn" style="width:90%;margin:8px 0;">CREATE &amp; START</button>
+          <div style="font-size:10px;"><a href="#" id="showLogin" style="color:#77f4ff;">Back to login</a></div>
+        </div>
       </div>
-      <button class="start-button" id="briefingButton" type="button">NEXT TRANSMISSION</button>
+
+      <!-- Game setup after login/guest -->
+      <div id="gameSetup" hidden>
+        <div class="name-field">
+          <label for="survivorName">YOUR SURVIVOR NAME</label>
+          <input id="survivorName" maxlength="20" placeholder="Enter a name" autocomplete="off">
+          <label class="difficulty-label">STARTING DIFFICULTY (Locked after start)</label>
+          <div class="difficulty-buttons" id="startingDifficulty"></div>
+          <label class="difficulty-label">BACKGROUND</label>
+          <div class="difficulty-buttons" id="startingBackground"></div>
+        </div>
+        <button class="start-button" id="startGameBtn" style="margin-top:8px;width:90%;">ENTER THE WASTES</button>
+        <div style="font-size:9px;margin-top:6px;opacity:0.7;">Simple survival. Make choices. Reach Haven.</div>
+      </div>
     </div>
   </section>
   <main class="shell">
@@ -43,7 +72,7 @@
     </section>
 
     <section class="status-grid" aria-label="Survival status">
-      <div class="status-card status-card--primary"><span class="status-label">SURVIVAL ODDS</span><strong id="oddsValue">62%</strong><div class="meter"><span id="oddsMeter"></span></div></div>
+       <div class="status-card status-card--primary odds-orb-card"><span class="status-label">SURVIVAL ODDS</span><div id="oddsOrb" class="odds-orb" title="Green = high odds, black = dire"></div><div id="oddsValue" style="font-size:10px;margin-top:2px;"></div></div>
       <div class="status-card"><span class="status-label">HEALTH</span><strong id="healthValue">78</strong><span class="status-note">VITALITY</span></div>
       <div class="status-card"><span class="status-label">RAD EXPOSURE</span><strong id="radiationValue">12</strong><span class="status-note">MUTATION RISK</span></div>
       <div class="status-card"><span class="status-label">WATER</span><strong id="suppliesValue">3</strong><span class="status-note">WATER RATIONS</span></div>

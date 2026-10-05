@@ -44,11 +44,13 @@ body::before {
 }
 .start-screen[hidden] { display: none; }
 .start-card {
-  width: min(700px, 100%);
-  padding: 42px 38px 32px;
+  width: min(420px, 96%);
+  margin: 0 auto;
+  padding: 20px 16px 16px;
   border: 1px solid var(--line);
   background: linear-gradient(180deg, rgba(15,25,18,.98), rgba(8,13,10,.96));
   box-shadow: 0 0 45px rgba(0, 0, 0, .6), 0 0 25px rgba(119, 244, 255, .08);
+  text-align: center;
 }
 .start-card h2 { margin: 20px 0 12px; color: var(--bright); font-size: clamp(30px, 6vw, 56px); }
 .start-card p { min-height: 72px; color: #9bd982; line-height: 1.6; }
@@ -139,6 +141,49 @@ h1 em { color: var(--bright); font-style: normal; }
   display: block; height: 100%; width: 58%; background: linear-gradient(90deg, var(--ink), var(--cyan));
   box-shadow: 0 0 10px rgba(168, 255, 96, .65); transition: width .45s ease, background .45s ease;
 }
+
+.odds-orb-card { align-items: center; }
+.odds-orb {
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  margin: 2px auto 0;
+  background: radial-gradient(circle at 30% 30%, #e0f7ff 10%, var(--orb-color, #a8ff60) 45%, #0a0f0a 90%);
+  box-shadow: 
+    0 0 8px var(--orb-color, #a8ff60),
+    0 0 18px var(--orb-color, #a8ff60),
+    0 0 32px var(--orb-color, #a8ff60),
+    inset 0 0 12px rgba(255,255,255,0.9),
+    inset 0 0 22px rgba(0,0,0,0.4);
+  position: relative;
+  animation: orb-pulse 2.2s infinite ease-in-out;
+  transition: all .4s ease;
+}
+.odds-orb::before {
+  content: '';
+  position: absolute; inset: -6px;
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 50%;
+  animation: orb-orbit 3.5s linear infinite;
+}
+.odds-orb::after {
+  content: '';
+  position: absolute; inset: -14px;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 50%;
+  animation: orb-orbit 5.2s linear infinite reverse;
+}
+@keyframes orb-pulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 8px var(--orb-color, #a8ff60), 0 0 18px var(--orb-color, #a8ff60), 0 0 32px var(--orb-color, #a8ff60), inset 0 0 12px rgba(255,255,255,0.9), inset 0 0 22px rgba(0,0,0,0.4); }
+  50% { transform: scale(1.08); box-shadow: 0 0 14px var(--orb-color, #a8ff60), 0 0 28px var(--orb-color, #a8ff60), 0 0 48px var(--orb-color, #a8ff60), inset 0 0 18px rgba(255,255,255,0.9), inset 0 0 30px rgba(0,0,0,0.4); }
+}
+@keyframes orb-orbit {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.odds-orb.green { --orb-color: #a8ff60; }
+.odds-orb.grey { --orb-color: #888; }
+.odds-orb.red { --orb-color: #ff7b5d; }
+.odds-orb.black { --orb-color: #222; box-shadow: 0 0 8px #400, 0 0 16px #200; }
 .event-banner { display: none !important; }
 .event-banner strong { color: var(--danger); font: 10px 'DM Mono', monospace; letter-spacing: .08em; white-space: nowrap; }
 .status-message { min-height: 18px; margin: 18px 0 -18px; color: var(--dim); font: 10px 'DM Mono', monospace; letter-spacing: .06em; animation: interfaceGlow 9s ease-in-out infinite alternate; }

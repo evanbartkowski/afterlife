@@ -357,8 +357,50 @@ function defaultState() {
     equipment: { weapon: null, armor: null, backpack: null, tool: null, artifact: null, companion: null },
     saveVersion: 2,
     currentChoiceSet: [],
-    background: 'NONE'
+    background: 'NONE',
+    nemeses: [],
+    factions: {
+      'Wardens': { power: 50, relation: 0 },
+      'Raiders': { power: 40, relation: -20 },
+      'Moon Elves': { power: 30, relation: 0 },
+      'Smugglers': { power: 35, relation: 0 },
+      'Cultists': { power: 25, relation: -10 },
+      'Haven Scouts': { power: 60, relation: 10 }
+    },
+    rumors: [],
+    mysteries: [],
+    dreams: [],
+    weather: 'clear',
+    journal: [],
+    scars: [],
+    namedWeapons: {},
+    graveyard: [],
+    ngPlus: false
   };
+}
+
+function createNemesis(enemyName, day, context = '') {
+  if (!state.nemeses) state.nemeses = [];
+  const existing = state.nemeses.find(n => n.name === enemyName);
+  if (existing) {
+    existing.sightings = (existing.sightings || 0) + 1;
+    existing.lastDay = day;
+    existing.hatred = (existing.hatred || 0) + 10;
+    return existing;
+  }
+  const nemesis = {
+    name: enemyName,
+    firstDay: day,
+    lastDay: day,
+    hatred: 20,
+    sightings: 1,
+    scar: true,
+    equipment: 'improved gear',
+    context: context,
+    alive: true
+  };
+  state.nemeses.push(nemesis);
+  return nemesis;
 }
 
 function hydrateState(rawState) {
@@ -393,7 +435,18 @@ function hydrateState(rawState) {
     relationshipMap: rawState?.relationshipMap && typeof rawState.relationshipMap === 'object' ? Object.fromEntries(Object.entries(rawState.relationshipMap).map(([key, value]) => [String(key).toLowerCase(), { ...relationshipDefaults(), ...(value || {}) }])) : {},
     started: Boolean(rawState?.started),
     saveVersion: 2,
-    background: rawState?.background || base.background
+    background: rawState?.background || base.background,
+    nemeses: Array.isArray(rawState?.nemeses) ? rawState.nemeses : base.nemeses,
+    factions: rawState?.factions || base.factions,
+    rumors: Array.isArray(rawState?.rumors) ? rawState.rumors : base.rumors,
+    mysteries: Array.isArray(rawState?.mysteries) ? rawState.mysteries : base.mysteries,
+    dreams: Array.isArray(rawState?.dreams) ? rawState.dreams : base.dreams,
+    weather: rawState?.weather || base.weather,
+    journal: Array.isArray(rawState?.journal) ? rawState.journal : base.journal,
+    scars: Array.isArray(rawState?.scars) ? rawState.scars : base.scars,
+    namedWeapons: rawState?.namedWeapons || base.namedWeapons,
+    graveyard: Array.isArray(rawState?.graveyard) ? rawState.graveyard : base.graveyard,
+    ngPlus: !!rawState?.ngPlus
   };
 
   if (!hydrated.relationshipMap || Object.keys(hydrated.relationshipMap).length === 0) {
@@ -418,10 +471,49 @@ function hydrateState(rawState) {
 }
 
 const SAVE_KEY = 'afterlight-save-v2';
+const ACCOUNTS_KEY = 'afterlight-accounts';
+
+let currentUser = null;
+
+function getAccounts() {
+  try {
+    return JSON.parse(localStorage.getItem(ACCOUNTS_KEY) || '{}');
+  } catch { return {}; }
+}
+function saveAccounts(accounts) {
+  localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(accounts));
+}
+
+function hashPass(pw) {
+  return btoa(pw || ''); // simple for demo
+}
+
+function createAccount(username, password) {
+  const accs = getAccounts();
+  const u = (username || '').trim().toLowerCase();
+  if (!u || !password || accs[u]) return false;
+  accs[u] = { pass: hashPass(password), save: null };
+  saveAccounts(accs);
+  currentUser = u;
+  return true;
+}
+
+function loginAccount(username, password) {
+  const accs = getAccounts();
+  const u = (username || '').trim().toLowerCase();
+  if (!accs[u] || accs[u].pass !== hashPass(password)) return false;
+  currentUser = u;
+  return true;
+}
+
+function getUserSaveKey() {
+  return currentUser ? `afterlight-save-${currentUser}` : SAVE_KEY;
+}
 
 function loadGame() {
   try {
-    const raw = localStorage.getItem(SAVE_KEY);
+    const key = getUserSaveKey();
+    const raw = localStorage.getItem(key);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (!parsed || parsed.runEnded) return null;
@@ -452,6 +544,7 @@ const $ = (id) => document.getElementById(id);
 
 function saveGame() {
   try {
+    const key = getUserSaveKey();
     const saveData = JSON.stringify({
       ...state,
       route: state.route.map(({campaignId,calendarDay,expedition,encounter,region,act,objective,dispatch,specialKind}) => ({campaignId,calendarDay,expedition,encounter,region,act,objective,dispatch,specialKind})),
@@ -461,7 +554,15 @@ function saveGame() {
       npcRegistry: state.npcRegistry.map((npc) => ({ ...npc, relationship: { ...(npc.relationship || {}) } })),
       relationshipMap: state.relationshipMap || {}
     });
-    localStorage.setItem(SAVE_KEY, saveData);
+    localStorage.setItem(key, saveData);
+    // also store in account if logged in
+    if (currentUser) {
+      const accs = getAccounts();
+      if (accs[currentUser]) {
+        accs[currentUser].save = saveData;
+        saveAccounts(accs);
+      }
+    }
   } catch (error) {
     console.warn('Unable to save game state.', error);
   }
@@ -764,6 +865,32 @@ function buildDynamicChoices() {
         }
       }
     });
+  }
+
+  // Nemesis system: persistent rivals return
+  if (state.nemeses && state.nemeses.length > 0 && Math.random() < 0.12) {
+    const aliveNemeses = state.nemeses.filter(n => n.alive);
+    if (aliveNemeses.length > 0) {
+      const nem = aliveNemeses[Math.floor(Math.random() * aliveNemeses.length)];
+      choices.push({
+        label: `Confront your nemesis ${nem.name}`,
+        apply: () => {
+          nem.hatred = (nem.hatred || 20) + 5;
+          nem.lastDay = state.day;
+          state.sceneText = `${nem.name} appears again, scarred from your last meeting. "This time, one of us doesn't walk away." `;
+          if (Math.random() < 0.55) {
+            nem.alive = false;
+            state.enemies = state.enemies.filter(e => e !== nem.name);
+            state.sceneText += 'After a brutal fight, they fall. The wasteland claims another name.';
+            recordEvent('Nemesis defeated', `${nem.name} finally defeated.`);
+          } else {
+            state.health = Math.max(1, state.health - 12);
+            state.sceneText += 'They wound you and escape once more, promising worse next time.';
+            recordEvent('Nemesis encounter', `Escaped ${nem.name} again.`);
+          }
+        }
+      });
+    }
   }
 
   return choices.slice(0, 4);
@@ -1251,6 +1378,9 @@ function applyStoryEffects(choice) {
       const target = key === 'ally' || key === 'friend' ? state.allies : key === 'lover' ? state.lovers : key === 'enemy' ? state.enemies : key === 'item' ? state.items : state.sins;
       if (!target.includes(effects[key])) target.push(effects[key]);
       if (key === 'item') addToInventory(effects[key]);
+      if (key === 'enemy' && Math.random() < 0.4) {
+        createNemesis(effects[key], state.day, 'survived encounter');
+      }
     }
   });
   if (effects.base) state.base = effects.base;
@@ -1267,9 +1397,10 @@ function applyStoryEffects(choice) {
 }
 
 function renderStats() {
-  const values = { oddsValue: `${state.odds}%`, healthValue: state.health, radiationValue: state.radiation.toFixed(1), suppliesValue: formatRations(state.supplies), foodValue: formatRations(state.food), luckValue: state.luck };
+  const values = { healthValue: state.health, radiationValue: state.radiation.toFixed(1), suppliesValue: formatRations(state.supplies), foodValue: formatRations(state.food), luckValue: state.luck };
   Object.entries(values).forEach(([id, value]) => {
     const element = $(id);
+    if (!element) return;
     const numericValue = Number.parseFloat(value);
     const previous = state.previousStats?.[id];
     element.textContent = value;
@@ -1280,8 +1411,20 @@ function renderStats() {
     element.classList.toggle('critical-low', ((id === 'suppliesValue' || id === 'foodValue') && numericValue <= 1) || (id === 'radiationValue' && numericValue >= 85));
     if (id === 'healthValue') element.classList.toggle('damage-taken', previous !== undefined && numericValue < previous);
   });
-  $('oddsMeter').style.width = `${state.odds}%`;
-  $('oddsMeter').style.background = state.odds < 35 ? '#ef704b' : '#a8ff60';
+  // Glowing orb for survival odds - color aura from green (best) to black (worst)
+  const orb = $('oddsOrb');
+  const oddsText = $('oddsValue');
+  if (orb && oddsText) {
+    let cls = 'green';
+    let col = '#a8ff60';
+    if (state.odds < 25) { cls = 'black'; col = '#222'; }
+    else if (state.odds < 45) { cls = 'red'; col = '#ff7b5d'; }
+    else if (state.odds < 70) { cls = 'grey'; col = '#888'; }
+    orb.className = `odds-orb ${cls}`;
+    orb.style.setProperty('--orb-color', col);
+    oddsText.textContent = `${state.odds}%`;
+    oddsText.style.color = col;
+  }
   $('headerDay').textContent = String(state.day).padStart(3, '0');
   state.previousStats = { oddsValue: state.odds, healthValue: state.health, radiationValue: state.radiation, suppliesValue: state.supplies, foodValue: state.food, luckValue: state.luck };
 }
@@ -1585,5 +1728,99 @@ document.addEventListener('click', (e) => {
   }
 }, {capture: true});
 
-renderBriefing();
+// === NEW ACCOUNT / LOGIN SYSTEM ===
+function showLogin() {
+  if ($('loginForm')) $('loginForm').hidden = false;
+  if ($('createForm')) $('createForm').hidden = true;
+  if ($('gameSetup')) $('gameSetup').hidden = true;
+}
+function showCreate() {
+  if ($('loginForm')) $('loginForm').hidden = true;
+  if ($('createForm')) $('createForm').hidden = false;
+  if ($('gameSetup')) $('gameSetup').hidden = true;
+}
+function showGameSetup() {
+  if ($('accountSection')) $('accountSection').hidden = true;
+  if ($('gameSetup')) $('gameSetup').hidden = false;
+  renderStartingDifficulty();
+  renderStartingBackground();
+}
+
+function handleLogin() {
+  const user = $('loginUser').value;
+  const pass = $('loginPass').value;
+  if (loginAccount(user, pass)) {
+    const loaded = loadGame();
+    if (loaded) state = loaded;
+    showGameSetup();
+  } else {
+    alert('Login failed. Check username/password.');
+  }
+}
+
+function handleCreate() {
+  const user = $('createUser').value;
+  const p1 = $('createPass').value;
+  const p2 = $('createPass2').value;
+  if (!user || !p1) { alert('Username and password required.'); return; }
+  if (p1 !== p2) { alert('Passwords do not match.'); return; }
+  if (createAccount(user, p1)) {
+    showGameSetup();
+  } else {
+    alert('Account creation failed (username taken?).');
+  }
+}
+
+function handleGuest() {
+  currentUser = null;
+  state = defaultState();
+  showGameSetup();
+}
+
+// Wire account UI (safe if elements exist)
+if ($('loginBtn')) $('loginBtn').addEventListener('click', handleLogin);
+if ($('createBtn')) $('createBtn').addEventListener('click', handleCreate);
+if ($('showCreate')) $('showCreate').addEventListener('click', (e) => { e.preventDefault(); showCreate(); });
+if ($('showLogin')) $('showLogin').addEventListener('click', (e) => { e.preventDefault(); showLogin(); });
+if ($('playGuest')) $('playGuest').addEventListener('click', (e) => { e.preventDefault(); handleGuest(); });
+
+// Start game from setup
+if ($('startGameBtn')) $('startGameBtn').addEventListener('click', () => {
+  const name = $('survivorName').value.trim();
+  if (!name) { $('survivorName').focus(); return; }
+  const activeButton = $('startingDifficulty').querySelector('.is-active');
+  const selectedDifficulty = Object.entries(difficulties).find(([, mode]) => mode.label === activeButton?.textContent)?.[0];
+  state.difficulty = selectedDifficulty || state.difficulty;
+  state.playerName = name.toUpperCase();
+  state.background = selectedBackground || 'NONE';
+  setDifficulty(state.difficulty);
+  // background bonuses
+  const bg = backgrounds[state.background];
+  if (bg && bg.stats) {
+    if (bg.stats.health) state.health = clamp(state.health + bg.stats.health, 50, 120);
+    if (bg.stats.luck) state.luck = clamp(state.luck + bg.stats.luck, 0, 100);
+    if (bg.stats.odds) state.odds = clamp(state.odds + bg.stats.odds, 0, 99);
+    if (bg.stats.supplies) state.supplies = Math.max(0, state.supplies + bg.stats.supplies);
+    if (bg.stats.food) state.food = Math.max(0, state.food + bg.stats.food);
+    if (bg.stats.materials) state.materials = Math.max(0, state.materials + bg.stats.materials);
+    if (bg.stats.radiation) state.radiation = clamp(state.radiation + bg.stats.radiation, 0, 100);
+    if (bg.stats.reputation) state.reputation = Math.max(0, state.reputation + bg.stats.reputation);
+    if (bg.stats.crowns) state.crowns = Math.max(0, state.crowns + bg.stats.crowns);
+  }
+  // starters
+  if (state.background === 'soldier') addToInventory('RUSTED REVOLVER');
+  if (state.background === 'scavenger') addToInventory('MAKESHIFT BACKPACK');
+  if (state.background === 'medic') addToInventory('MEDIC COMPANION KIT');
+  state.started = true;
+  $('startScreen').hidden = true;
+  renderDifficultyButtons();
+  if (!state.audio) toggleSound();
+  saveGame();
+});
+
+showLogin(); // default to login screen
+// end account system
+
+// old renderBriefing / set called only if needed, but we use new flow
+// renderBriefing(); // disabled for new account UI
 setDifficulty(state.difficulty);
