@@ -526,12 +526,8 @@ function loadGame() {
 }
 
 let state = defaultState();
-const loadedState = loadGame();
-if (loadedState) {
-  state = loadedState;
-  // migrate legacy items into inventory
-  (state.items || []).forEach(it => addToInventory(it));
-}
+// Do not auto-load here; the new account/login system handles per-user loading
+// Migration will happen on login or guest start if needed
 const hasValidSave = () => {
   try {
     const raw = localStorage.getItem(SAVE_KEY);
@@ -543,6 +539,7 @@ const hasValidSave = () => {
 const $ = (id) => document.getElementById(id);
 
 function saveGame() {
+  if (!currentUser) return; // guest mode: no save
   try {
     const key = getUserSaveKey();
     const saveData = JSON.stringify({
@@ -1528,7 +1525,17 @@ function showEnding(reached365 = false, death = null) {
 
 function restart() {
   if (typeof confirm === 'function' && !confirm('Restart the run? Current progress will be lost.')) return;
-  startNewRun();
+  if (currentUser) {
+    // clear save for this user
+    const key = getUserSaveKey();
+    localStorage.removeItem(key);
+    const accs = getAccounts();
+    if (accs[currentUser]) accs[currentUser].save = null;
+    saveAccounts(accs);
+  }
+  state = defaultState();
+  $('startScreen').hidden = false;
+  showLogin();
 }
 
 function toggleSound() {
@@ -1595,139 +1602,6 @@ function showDecisionAftermath(before) {
   const panel = $('decisionAftermath'); panel.textContent = notes.join(' '); panel.hidden = !notes.length;
 }
 
-const briefingSlides = [
-  ['BEFORE THE ASH', 'The old world ended in fire, but the radiation kept changing it after the flames went out.'],
-  ['THE LONG SILENCE', 'Your last shelter is gone. On a damaged radio, a woman named Stella promises that Haven is real: clean water, gardens, and a place to sleep safely. You have 365 days to follow her clues through the mountains.'],
-  ['WHAT REMAINS', 'Settlements trade in water, bullets, old promises, and stranger things. Elves, mutants, zombies, and ordinary people all want a piece of tomorrow.'],
-  ['YOUR FIELD LOG', 'Before you enter the wastes, tell the field log what to call you and choose a starting difficulty. Follow the signal to Haven. Your choices will shape the route you take, the people you help, and the life waiting for you with Stella in Haven.']
-];
-let briefingStep = 0;
-
-function renderBriefing() {
-  $('briefingTitle').textContent = briefingSlides[briefingStep][0];
-  $('briefingText').textContent = briefingSlides[briefingStep][1];
-  $('briefingProgress').style.width = `${((briefingStep + 1) / briefingSlides.length) * 100}%`;
-  const isSetup = briefingStep === briefingSlides.length - 1;
-  $('nameField').hidden = !isSetup;
-  $('briefingButton').textContent = isSetup ? 'ENTER THE WASTES' : 'NEXT TRANSMISSION';
-  if (isSetup) {
-    renderStartingDifficulty();
-    renderStartingBackground();
-    if (hasValidSave() && state.playerName && $('survivorName')) {
-      $('survivorName').value = state.playerName;
-      $('survivorName').placeholder = state.playerName + ' (loaded)';
-    }
-  }
-  // Show run actions only at final setup step, and hide continue if no save
-  const runActions = $('runActions');
-  if (runActions) {
-    if (isSetup) {
-      runActions.hidden = false;
-      if ($('continueButton')) $('continueButton').hidden = !hasValidSave();
-    } else {
-      runActions.hidden = true;
-    }
-  }
-}
-
-function finishBriefing() {
-  const name = $('survivorName').value.trim();
-  if (!name) { $('survivorName').focus(); return; }
-  const activeButton = $('startingDifficulty').querySelector('.is-active');
-  const selectedDifficulty = Object.entries(difficulties).find(([, mode]) => mode.label === activeButton?.textContent)?.[0];
-  state.difficulty = selectedDifficulty || state.difficulty;
-  state.playerName = name.toUpperCase();
-  state.background = selectedBackground || 'NONE';
-  setDifficulty(state.difficulty);
-  // Apply background bonuses on new run
-  const bg = backgrounds[state.background];
-  if (bg && bg.stats) {
-    if (bg.stats.health) state.health = clamp(state.health + bg.stats.health, 50, 120);
-    if (bg.stats.luck) state.luck = clamp(state.luck + bg.stats.luck, 0, 100);
-    if (bg.stats.odds) state.odds = clamp(state.odds + bg.stats.odds, 0, 99);
-    if (bg.stats.supplies) state.supplies = Math.max(0, state.supplies + bg.stats.supplies);
-    if (bg.stats.food) state.food = Math.max(0, state.food + bg.stats.food);
-    if (bg.stats.materials) state.materials = Math.max(0, state.materials + bg.stats.materials);
-    if (bg.stats.radiation) state.radiation = clamp(state.radiation + bg.stats.radiation, 0, 100);
-    if (bg.stats.reputation) state.reputation = Math.max(0, state.reputation + bg.stats.reputation);
-    if (bg.stats.crowns) state.crowns = Math.max(0, state.crowns + bg.stats.crowns);
-  }
-  state.started = true;
-  // grant a starter piece of gear based on background for immediate inventory feel
-  if (state.background === 'soldier') addToInventory('RUSTED REVOLVER');
-  if (state.background === 'scavenger') addToInventory('MAKESHIFT BACKPACK');
-  if (state.background === 'medic') addToInventory('MEDIC COMPANION KIT');
-  $('startScreen').hidden = true;
-  renderDifficultyButtons();
-  // Auto start sound/music on first play (after user interaction)
-  if (!state.audio) toggleSound();
-  saveGame();
-}
-
-function continueRun() {
-  if (!hasValidSave()) return;
-  // If not already loaded into state, load it
-  const loaded = loadGame();
-  if (loaded) state = loaded;
-  state.started = true;
-  $('startScreen').hidden = true;
-  renderDifficultyButtons();
-  renderScenario();
-  renderStats();
-  renderWorldState();
-  // Auto start sound on resume
-  if (!state.audio) toggleSound();
-  saveGame();
-}
-
-function startNewRun() {
-  if (hasValidSave() && typeof confirm === 'function' && !confirm('Start a new run? This will end the current saved run.')) return;
-  localStorage.removeItem(SAVE_KEY);
-  const mature = state.matureContent;
-  state = defaultState();
-  state.matureContent = mature;
-  briefingStep = 0;
-  if ($('survivorName')) $('survivorName').value = '';
-  if ($('eventBanner')) $('eventBanner').hidden = true;
-  if ($('storyPanel')) $('storyPanel').classList.remove('outcome', 'outcome--win');
-  if ($('startScreen')) $('startScreen').hidden = false;
-  renderBriefing();
-  setDifficulty(state.difficulty);
-}
-
-$('briefingButton').addEventListener('click', () => { if (briefingStep < briefingSlides.length - 1) { briefingStep += 1; renderBriefing(); } else finishBriefing(); });
-if ($('continueButton')) $('continueButton').addEventListener('click', continueRun);
-if ($('newRunButton')) $('newRunButton').addEventListener('click', startNewRun);
-$('restartButton').addEventListener('click', restart);
-if ($('inventoryButton')) $('inventoryButton').addEventListener('click', () => toggleInventory());
-if ($('closeInventory')) $('closeInventory').addEventListener('click', () => toggleInventory(false));
-if ($('inventoryPanel')) $('inventoryPanel').addEventListener('close', () => { if ($('inventoryButton')) $('inventoryButton').focus(); });
-$('soundButton').addEventListener('click', toggleSound);
-$('tutorialButton').addEventListener('click', () => toggleTutorial(!$('tutorialPanel').open));
-$('matureButton').addEventListener('click', () => {
-  state.matureContent = !state.matureContent;
-  $('matureButton').setAttribute('aria-pressed', String(state.matureContent));
-  $('matureButton').textContent = state.matureContent ? 'MATURE TEXT: ON' : 'MATURE TEXT: OFF';
-});
-$('closeTutorial').addEventListener('click', () => toggleTutorial(false));
-$('tutorialPanel').addEventListener('close', () => {
-  $('tutorialButton').setAttribute('aria-expanded', 'false');
-  $('tutorialButton').focus();
-});
-
-// SFX on static buttons
-['briefingButton','continueButton','newRunButton','restartButton','inventoryButton','soundButton','tutorialButton','matureButton','closeTutorial','closeInventory'].forEach(id => {
-  const el = $(id);
-  if (el) el.addEventListener('click', () => playSFX('click'));
-});
-
-// Global SFX for any game buttons (click feedback) - skip choices as they have specific
-document.addEventListener('click', (e) => {
-  if (e.target.tagName === 'BUTTON' && $('startScreen') && $('startScreen').hidden && !e.target.classList.contains('choice')) {
-    playSFX('click');
-  }
-}, {capture: true});
-
 // === NEW ACCOUNT / LOGIN SYSTEM ===
 function showLogin() {
   if ($('loginForm')) $('loginForm').hidden = false;
@@ -1752,7 +1626,17 @@ function handleLogin() {
   if (loginAccount(user, pass)) {
     const loaded = loadGame();
     if (loaded) state = loaded;
-    showGameSetup();
+    if (state.started && state.day > 0) {
+      // auto resume if saved run in progress
+      $('startScreen').hidden = true;
+      renderDifficultyButtons();
+      if (!state.audio) toggleSound();
+      renderScenario();
+      renderStats();
+      renderWorldState();
+    } else {
+      showGameSetup();
+    }
   } else {
     alert('Login failed. Check username/password.');
   }
@@ -1816,11 +1700,14 @@ if ($('startGameBtn')) $('startGameBtn').addEventListener('click', () => {
   renderDifficultyButtons();
   if (!state.audio) toggleSound();
   saveGame();
+  // Launch the actual game
+  renderScenario();
+  renderStats();
+  renderWorldState();
 });
 
 showLogin(); // default to login screen
 // end account system
 
-// old renderBriefing / set called only if needed, but we use new flow
-// renderBriefing(); // disabled for new account UI
-setDifficulty(state.difficulty);
+// Initial setup - do not call old setDifficulty here as account flow handles it
+// setDifficulty is called inside the game start flow when appropriate
