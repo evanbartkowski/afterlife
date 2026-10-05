@@ -155,14 +155,30 @@ function resolveCampaignScene(scene) {
   const beat = campaignBeats.find(entry => entry.id === scene.campaignId);
   return { ...beat, calendarDay: scene.calendarDay, campaignId: beat.id, type: `${beat.act} // ${beat.kind ? beat.kind.toUpperCase() : 'DECISION'}`, text: typeof beat.text === 'function' ? beat.text() : beat.text, choices: typeof beat.choices === 'function' ? beat.choices() : beat.choices };
 }
+function tidyLabel(text) {
+  return String(text || '').replace(/\s*\/\/\s*/g, ' · ').replace(/\s+\/\s+/g, ' · ').replace(/\s{2,}/g, ' ').trim();
+}
+function questName(scene) {
+  const raw = String(scene?.act || scene?.journeyAct || scene?.chain || scene?.title || 'Current quest');
+  const stripped = raw.replace(/^[IVXLC]+\s*(?:\/\/|\/|·|-|–|—)\s*/i, '').split('//')[0].split(' / ')[0].trim();
+  const titled = stripped.toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
+  return titled || 'Current quest';
+}
 function renderCampaignContext(scene) {
-  $('campaignContext').textContent = `${scene.act || scene.journeyAct} — ${scene.objective || scene.journeyContext} // REACH HAVEN BY DAY 365`;
-  state.region = scene.region ?? scene.journeyRegion ?? state.region;
-  $('regionValue').textContent = regions[state.region][0];
-  $('anomalyValue').textContent = regions[state.region][1];
-  $('location').textContent = `${regions[state.region][0]} // DAY ${state.day} / 365`;
-  $('radioMessage').textContent = state.story.lastRadio || 'RADIO // Waiting for a verified signal.';
-  $('routeClues').textContent = `ROUTE NOTES // ${(state.story.clues || []).join(' → ') || 'No verified clues yet.'}`;
+  const quest = $('questLine');
+  if (quest) quest.textContent = questName(scene);
+  const context = $('campaignContext');
+  if (context) context.textContent = tidyLabel(scene.objective || scene.journeyContext || 'Survive the road to Haven.');
+  const regionIndex = clamp(Number(scene.region ?? scene.journeyRegion ?? state.region) || 0, 0, regions.length - 1);
+  state.region = regionIndex;
+  const region = regions[regionIndex] || regions[0];
+  if ($('regionValue')) $('regionValue').textContent = region[0];
+  if ($('anomalyValue')) $('anomalyValue').textContent = region[1];
+  if ($('location')) $('location').textContent = `${region[0]} · Day ${state.day} of 365`;
+  const radio = $('radioMessage');
+  if (radio) radio.textContent = tidyLabel(state.story.lastRadio || 'Waiting for a verified signal.');
+  const clues = $('routeClues');
+  if (clues) clues.textContent = (state.story.clues || []).join(' → ') || 'No verified clues yet.';
 }
 function renderCampaignBeat(scene) {
   if (!scene.kind) return false;
@@ -180,8 +196,8 @@ function renderCampaignBeat(scene) {
   }
   renderStats(); renderWorldState(); renderCampaignContext(scene);
   $('storyInterlude').hidden = true;
-  $('promptText').textContent = scene.camp ? 'DAYS ON THE ROUTE // REST AND RESUPPLY' : 'FIELD RECORD // CONTINUE WHEN READY';
-  showInlineContinue(scene.text);
+  $('promptText').textContent = scene.camp ? 'Days on the route. Rest and resupply.' : 'Field record. Continue when ready.';
+  showInlineContinue(typeof decorateSceneText === 'function' ? decorateSceneText(scene.text) : scene.text);
   if (scene.camp || scene.effects) showOutcomeFeedback(before);
   if (state.health <= 0) showEnding(false);
   else if (scene.kind === 'ending') {

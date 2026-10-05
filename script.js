@@ -883,7 +883,7 @@ function buildDynamicChoices() {
 }
 
 const feedbackStats = {
-  odds: ['oddsValue', 'Survival odds'], health: ['healthValue', 'Health'],
+  health: ['healthValue', 'Health'],
   radiation: ['radiationValue', 'Radiation'], supplies: ['suppliesValue', 'Water'],
   food: ['foodValue', 'Food'], luck: ['luckValue', 'Luck'],
   materials: ['materialsValue', 'Materials'], reputation: ['reputationValue', 'Reputation'],
@@ -912,12 +912,15 @@ function showOutcomeFeedback(before) {
     badge.className = `stat-delta ${favorable ? 'delta-gain' : 'delta-loss'}`;
     badge.textContent = signed;
     badge.setAttribute('aria-label', `${label} ${signed}`);
-    $(id).appendChild(badge);
+    const host = $(id);
+    if (host) host.appendChild(badge);
   });
   const gainedItems = state.items.filter(item => !before.items.includes(item));
   const summary = $('choiceOutcome');
-  summary.textContent = gainedItems.join(' ? ');
-  summary.hidden = gainedItems.length === 0;
+  if (summary) {
+    summary.textContent = gainedItems.join(' · ');
+    summary.hidden = gainedItems.length === 0;
+  }
 }
 
 document.addEventListener('click', clearOutcomeFeedback, true);
@@ -925,7 +928,9 @@ document.addEventListener('click', clearOutcomeFeedback, true);
 function handleDynamicChoice(choice) {
   if (!choice || !choice.apply) return;
   const before = captureOutcome();
+  state.lastAction = choice.label || 'Field action';
   choice.apply();
+  state.lastOutcome = state.sceneText || choice.label || 'You acted.';
   if (state.sceneText) {
     $('sceneText').textContent = state.sceneText;
   }
@@ -976,7 +981,8 @@ function renderWorldState() {
   renderListField('alliesValue', state.allies);
   renderListField('loversValue', state.lovers);
   renderListField('enemiesValue', state.enemies);
-  renderListField('itemsValue', state.items);
+  const carriedItems = [...new Set([...(state.items || []), ...(state.inventory || [])].filter(Boolean))];
+  renderListField('itemsValue', carriedItems);
   $('materialsValue').textContent = state.materials;
   $('crownsValue').textContent = state.crowns;
   $('reputationValue').textContent = state.reputation;
@@ -984,7 +990,22 @@ function renderWorldState() {
   $('raceValue').textContent = state.race;
   $('backgroundValue').textContent = (state.background && backgrounds[state.background]) ? backgrounds[state.background].label : (state.background || 'NONE');
   $('humanityValue').textContent = humanity();
-  $('baseBuffValue').textContent = `BASE BENEFIT // ${activeBase().label || 'Choose a support network to gain its benefits.'}`;
+  const showEntry = (id, visible) => {
+    const el = $(id);
+    const entry = el && el.closest('.world-entry');
+    if (entry) entry.hidden = !visible;
+  };
+  const hasList = (list) => Array.isArray(list) && list.length > 0;
+  showEntry('baseValue', state.base && state.base !== 'NONE');
+  showEntry('alliesValue', hasList(state.allies));
+  showEntry('loversValue', hasList(state.lovers));
+  showEntry('enemiesValue', hasList(state.enemies));
+  showEntry('itemsValue', hasList(state.items) || hasList(state.inventory));
+  showEntry('materialsValue', Number(state.materials) > 0);
+  showEntry('reputationValue', Number(state.reputation) !== 0);
+  showEntry('backgroundValue', state.background && state.background !== 'NONE');
+  const baseNote = $('baseBuffValue');
+  if (baseNote) baseNote.textContent = activeBase().label || 'Choose a support network to gain its benefits.';
 }
 
 function renderInventory() {
@@ -999,14 +1020,14 @@ function renderInventory() {
     const div = document.createElement('div');
     div.style.border = '1px solid var(--line)';
     div.style.padding = '4px';
-    div.style.fontSize = '11px';
+    div.style.fontSize = '14px';
     const item = state.equipment[slot];
     const def = getItemDef(item);
     div.innerHTML = `<strong>${slot.toUpperCase()}</strong><br>${item ? def.name : '— empty —'}`;
     if (item) {
       const btn = document.createElement('button');
       btn.textContent = 'UNEQUIP';
-      btn.style.fontSize='9px';
+      btn.style.fontSize = '12px';
       btn.onclick = () => { unequipSlot(slot); renderInventory(); };
       div.appendChild(btn);
       div.onclick = (e) => { if (e.target.tagName !== 'BUTTON') showItemDetail(item, detailEl); };
@@ -1016,25 +1037,40 @@ function renderInventory() {
   listEl.innerHTML = '';
   const carried = [...new Set(state.inventory)];
   countEl.textContent = `(${carried.length})`;
-  carried.forEach(rawName => {
+  const groups = {};
+  carried.forEach((rawName) => {
+    const def = getItemDef(rawName);
+    const type = String(def.type || 'story').toLowerCase();
+    const category = type === 'weapon' ? 'Weapons' : type === 'armor' ? 'Survival Gear' : type === 'artifact' ? 'Artifacts' : type === 'tool' ? 'Tools' : /med|kit|heal/.test(String(def.name)) ? 'Medical' : 'Story Items';
+    (groups[category] || (groups[category] = [])).push(String(rawName));
+  });
+  Object.entries(groups).forEach(([category, names]) => {
+    const heading = document.createElement('div');
+    heading.textContent = category;
+    heading.style.color = '#77f4ff';
+    heading.style.marginTop = '8px';
+    heading.style.fontFamily = 'Oswald, sans-serif';
+    listEl.appendChild(heading);
+    names.forEach(rawName => {
     const name = String(rawName);
     const def = getItemDef(name);
     const row = document.createElement('div');
     row.style.borderBottom = '1px dotted var(--line)';
-    row.style.padding = '2px 0';
+    row.style.padding = '4px 0';
     row.style.cursor = 'pointer';
-    row.textContent = `${def.name} [${def.rarity || 'C'}]`;
+    row.textContent = `${def.name} · ${def.rarity || 'Common'}`;
     row.onclick = () => showItemDetail(name, detailEl, true);
     // quick equip button
     if (def.slot) {
       const eq = document.createElement('button');
       eq.textContent = 'EQUIP';
       eq.style.marginLeft = '6px';
-      eq.style.fontSize = '9px';
+      eq.style.fontSize = '12px';
       eq.onclick = (e) => { e.stopImmediatePropagation(); equipItem(name); renderInventory(); };
       row.appendChild(eq);
     }
     listEl.appendChild(row);
+    });
   });
   if (!carried.length) listEl.textContent = 'No carried items.';
   if (detailEl) detailEl.textContent = '';
@@ -1078,9 +1114,133 @@ function applyTravelNeeds(travelDays) {
   state.radiation = clamp(state.radiation + radiationDrift * travelDays, 0, 100);
   const foodShortage = foodBefore <= 0;
   const waterShortage = waterBefore <= 0;
-  const damage = (foodShortage ? 3 : 0) + (waterShortage ? 3 : 0);
+  let damage = (foodShortage ? 3 : 0) + (waterShortage ? 3 : 0);
+  if (foodShortage && waterShortage) damage += 2;
+  if (damage && state.health <= 40) damage += 1;
+  if (state.radiation >= 70) state.radiation = clamp(state.radiation + .35 * travelDays, 0, 100);
+  if (playerHasAny(['GAS MASK', 'MOONSEED CHARM'])) state.radiation = clamp(state.radiation - .2 * travelDays, 0, 100);
   if (damage) state.health = Math.max(0, state.health - damage * travelDays);
   return { foodShortage, waterShortage, damage: damage * travelDays, radiationDrift: radiationDrift * travelDays };
+}
+
+function playerHasAny(names) {
+  const owned = new Set([...(state.items || []), ...(state.inventory || []), ...Object.values(state.equipment || {})].filter(Boolean).map((name) => String(name).toUpperCase()));
+  return names.some((name) => owned.has(String(name).toUpperCase()));
+}
+
+function conditionFlavor() {
+  if (state.health <= 30) return 'Every breath pulls at the wound beneath your ribs.';
+  if (state.supplies <= 1) return 'Your mouth feels like sandpaper.';
+  if (state.food <= 1) return 'Your stomach stopped growling hours ago.';
+  if (state.radiation >= 75) return 'The green light makes something beneath your skin pulse.';
+  if (state.luck >= 72) return 'For once, the door you choose is the one that still opens.';
+  return '';
+}
+
+function decorateSceneText(text) {
+  const line = conditionFlavor();
+  if (!line || !text || String(text).includes(line)) return text;
+  return `${text}\n\n${line}`;
+}
+
+function choicePressure(label) {
+  const text = String(label || '').toLowerCase();
+  const tags = [];
+  const physical = /climb|fight|run|force|carry|attack|chase|swim|lift/.test(text);
+  const travel = /travel|walk|road|search|cross|climb|run|chase/.test(text);
+  if (state.health <= 18 && physical) tags.push('TOO INJURED');
+  else if (state.health <= 40 && physical) tags.push('WOUNDED — HIGH RISK');
+  if (state.supplies <= 1 && travel) tags.push('LOW WATER');
+  if (state.food <= 1 && travel) tags.push('STARVING');
+  if (state.radiation >= 70 && /ruin|marsh|crater|rad|storm|waste|search|enter/.test(text)) tags.push('SEVERE RADIATION RISK');
+  if (state.luck >= 70 && /search|scavenge|look|open|explore/.test(text)) tags.push('LUCK');
+  if (state.background === 'soldier' && physical) tags.push('SOLDIER');
+  if (state.background === 'medic' && /heal|wound|medic|treat/.test(text)) tags.push('MEDIC');
+  if (state.background === 'scavenger' && /search|scavenge|loot/.test(text)) tags.push('SCAVENGER');
+  return tags;
+}
+
+function applyConditionPressure(label) {
+  const text = String(label || '').toLowerCase();
+  const notes = [];
+  const physical = /climb|fight|run|force|carry|attack|chase|swim|lift/.test(text);
+  if (physical && state.health <= 40) {
+    const extra = state.background === 'soldier' ? 1 : (state.health <= 20 ? 5 : 3);
+    state.health = Math.max(0, state.health - extra);
+    notes.push('The wound makes the effort cost more.');
+  }
+  if (state.supplies <= 1 && state.health <= 45) {
+    state.health = Math.max(0, state.health - 2);
+    notes.push('Dehydration turns the effort dangerous.');
+  }
+  if (state.food <= 1) {
+    state.health = Math.max(0, state.health - 1);
+    notes.push('Hunger keeps the body from recovering cleanly.');
+  }
+  if (state.radiation >= 75) {
+    state.radiation = Math.min(100, state.radiation + 1);
+    notes.push('The contamination bites deeper than it should.');
+  }
+  if (state.luck >= 68 && /search|scavenge|open|look|explore/.test(text) && Math.random() < .34) {
+    state.supplies += 1;
+    notes.push('Luck. A sealed compartment still had water.');
+  } else if (state.luck <= 28 && /search|scavenge|open/.test(text) && Math.random() < .3) {
+    notes.push('Someone got here first. The useful pieces are gone.');
+  }
+  if (state.background === 'medic' && state.health < 70) state.health = Math.min(100, state.health + 1);
+  return notes.join(' ');
+}
+
+function signedDelta(value) {
+  const rounded = Math.round(Number(value) * 10) / 10;
+  if (!rounded) return '';
+  return `${rounded > 0 ? '+' : ''}${rounded}`;
+}
+
+function summarizeChanges(before) {
+  if (!before) return 'No recorded change.';
+  const bits = [];
+  [['health', 'Health'], ['radiation', 'Rad'], ['supplies', 'Water'], ['food', 'Food'], ['luck', 'Luck'], ['odds', 'Survival'], ['crowns', 'Gold'], ['materials', 'Materials'], ['reputation', 'Reputation']].forEach(([key, label]) => {
+    const text = signedDelta(Number(state[key] || 0) - Number(before[key] || 0));
+    if (text) bits.push(`${label} ${text}`);
+  });
+  const beforeItems = new Set([...(before.items || []), ...(before.inventory || [])].map(String));
+  const gained = [...new Set([...(state.items || []), ...(state.inventory || [])].filter((item) => item && !beforeItems.has(String(item))))];
+  if (gained.length) bits.push(`Gained ${gained.join(', ')}`);
+  ['allies', 'lovers', 'enemies'].forEach((key) => {
+    const added = (state[key] || []).filter((name) => !(before[key] || []).includes(name));
+    if (added.length) bits.push(`${key[0].toUpperCase()}${key.slice(1)}: ${added.join(', ')}`);
+  });
+  if (before.base !== state.base && state.base && state.base !== 'NONE') bits.push(`Base: ${state.base}`);
+  if (before.race !== state.race) bits.push(`Race: ${state.race}`);
+  return bits.length ? bits.join(' · ') : 'No stat or item change.';
+}
+
+function recordJournal(title, choice, effects, happened) {
+  if (!Array.isArray(state.journal)) state.journal = [];
+  state.journal.push({
+    day: state.day,
+    title: title || 'Field',
+    choice: String(choice || 'Continue onward').replace(/\s+/g, ' ').slice(0, 180),
+    summary: String(happened || '').replace(/\s+/g, ' ').slice(0, 240),
+    effects: effects || 'No stat or item change.'
+  });
+  if (state.journal.length > 80) state.journal.splice(0, state.journal.length - 80);
+  state.journalLogged = true;
+  renderJournal();
+}
+
+function renderJournal() {
+  const list = $('journalList');
+  const recent = $('recentTasks');
+  const entries = Array.isArray(state.journal) ? state.journal : [];
+  if (list) {
+    list.innerHTML = entries.length ? entries.slice().reverse().map((entry) => `<div class="journal-entry"><strong>Day ${entry.day}</strong><div class="journal-choice">Chose: ${entry.choice || entry.summary || entry.title}</div>${entry.summary ? `<div>${entry.summary}</div>` : ''}<div class="journal-effects">Effects: ${entry.effects || 'No stat or item change.'}</div></div>`).join('') : 'No entries yet.';
+  }
+  if (recent) {
+    const last = entries.slice(-3).reverse();
+    recent.innerHTML = last.length ? last.map((entry) => `Chose: ${entry.choice || entry.title}`).join('<br>') : 'No earlier tasks yet.';
+  }
 }
 
 function resolveRadiationThreshold() {
@@ -1145,22 +1305,36 @@ function setDifficulty(key) {
   state.npcRegistry = npcCatalog.map((npc) => ({ ...npc, relationship: { ...relationshipDefaults(), ...(npc.relationship || {}) } }));
   state.deadNPCs = [];
   state.eventHistory = [];
-  $('eventBanner').hidden = true;
-  $('statusMessage').textContent = `FIELD NOTE // ${mode.label} RUN INITIALIZED. REACH HAVEN BY DAY 365.`;
-  renderScenario();
+  const banner = $('eventBanner');
+  if (banner) banner.hidden = true;
+  const note = $('statusMessage');
+  if (note) note.textContent = `Field note. ${mode.label} run initialized. Reach Haven by day 365.`;
 }
 
 function renderDifficultyButtons() {
-  $('difficultyButtons').innerHTML = '';
-  Object.entries(difficulties).forEach(([key, mode]) => {
-    const button = document.createElement('button');
-    button.className = `difficulty-button ${key === state.difficulty ? 'is-active' : ''}`;
-    button.textContent = mode.label;
-    button.type = 'button';
-    button.disabled = state.started;
-    button.addEventListener('click', () => { playSFX('click'); setDifficulty(key); });
-    $('difficultyButtons').appendChild(button);
-  });
+  const host = $('difficultyButtons');
+  if (!host) return;
+  const keys = Object.keys(difficulties);
+  const existing = host.querySelectorAll('button');
+  if (existing.length === keys.length) {
+    existing.forEach((button, index) => {
+      const key = keys[index];
+      button.className = `difficulty-button ${key === state.difficulty ? 'is-active' : ''}`;
+      button.disabled = state.started;
+    });
+  } else {
+    host.innerHTML = '';
+    keys.forEach((key) => {
+      const mode = difficulties[key];
+      const button = document.createElement('button');
+      button.className = `difficulty-button ${key === state.difficulty ? 'is-active' : ''}`;
+      button.textContent = mode.label;
+      button.type = 'button';
+      button.disabled = state.started;
+      button.addEventListener('click', () => { playSFX('click'); setDifficulty(key); });
+      host.appendChild(button);
+    });
+  }
   const label = $('difficultyLabel');
   if (label) label.textContent = state.started ? 'DIFFICULTY (Locked)' : 'DIFFICULTY';
 }
@@ -1218,11 +1392,11 @@ function renderInterlude() {
   const el = $('storyInterlude');
   if (!el) return;
   const interludes = [
-    'SOMETHING HAPPENS // The dust settles; the radio hums without any voice behind it.',
-    'DUST WATCH // Something scuttles beneath the ash outside the shelter wall.',
-    'LOW LIGHT // A faint chorus carries on the wind, then disappears before you can place it.',
-    'MILEPOST // The road folds beneath your boots like a remembered dream.',
-    'SILENT SIGNAL // The horizon flickers green, then settles back into ruin.'
+    'Something happens. The dust settles; the radio hums without any voice behind it.',
+    'Dust watch. Something scuttles beneath the ash outside the shelter wall.',
+    'Low light. A faint chorus carries on the wind, then disappears before you can place it.',
+    'Milepost. The road folds beneath your boots like a remembered dream.',
+    'Silent signal. The horizon flickers green, then settles back into ruin.'
   ];
   const showInterlude = state.day % 3 === 0;
   if (!showInterlude) {
@@ -1235,16 +1409,18 @@ function renderInterlude() {
 }
 
 function renderScenario() {
+  state.sceneSnapshot = captureOutcome();
+  state.journalLogged = false;
   state.choiceResolved = false;
   $('decisionAftermath').hidden = true;
   const scene = filterMatureScene(resolveCampaignScene(state.route[state.scenario] || { campaignId: 'morning' }));
   state.route[state.scenario] = scene;
   state.day = scene.calendarDay || state.day;
-  const [region, anomaly] = regions[state.region];
+  const [region, anomaly] = regions[clamp(state.region, 0, regions.length - 1)] || regions[0];
   $('chapterNumber').textContent = String(state.scenario + 1).padStart(2, '0');
   $('headerDay').textContent = String(state.day).padStart(3, '0');
-  $('sceneType').textContent = scene.type;
-  $('location').textContent = `${region} // DAY ${String(state.day).padStart(3, '0')}`;
+  $('sceneType').textContent = scene.kind ? scene.kind.replace(/^\w/, (letter) => letter.toUpperCase()) : tidyLabel(String(scene.type || 'Encounter').split('//').pop());
+  $('location').textContent = `${region} · Day ${String(state.day).padStart(3, '0')}`;
   $('storyPanel').classList.remove('prompt-danger', 'prompt-important', 'prompt-arcane');
   if (/THREAT|BOSS|IMPOSSIBLE|MUTATION/.test(scene.type)) $('storyPanel').classList.add('prompt-danger');
   else if (/FIRST DECISION|QUEST|HAVEN GATE|SURVIVOR/.test(scene.type)) $('storyPanel').classList.add('prompt-important');
@@ -1253,15 +1429,15 @@ function renderScenario() {
   $('specialEventBadge').hidden = !scene.special;
   if(scene.special) {
     $('storyPanel').classList.add('special-event','special-'+scene.tone);
-    $('specialEventBadge').textContent = scene.tone==='danger' ? 'SURVIVAL CRISIS // HIGH IMPACT' : 'RARE EVENT // HIGH IMPACT';
+    $('specialEventBadge').textContent = scene.tone==='danger' ? 'Survival crisis · High impact' : 'Rare event · High impact';
   }
   $('sceneTitle').textContent = scene.title;
-  setSceneText(personalizeNarrative(scene, scene.text || state.sceneText || ''));
+  setSceneText(decorateSceneText(personalizeNarrative(scene, scene.text || state.sceneText || '')));
   $('promptText').textContent = 'WHAT DO YOU DO?';
   $('regionValue').textContent = region;
   $('anomalyValue').textContent = anomaly;
-  $('logLine').textContent = `LOG ${String(state.scenario + 1).padStart(2, '0')} // ${difficulties[state.difficulty].label} RUN`;
-  $('statusMessage').textContent = scene.chain ? `QUEST CHAIN // ${scene.chain} // THIS CHOICE WILL BE REMEMBERED.` : 'FIELD NOTE // THE WASTELAND IS LISTENING.';
+  $('logLine').textContent = `Log ${String(state.scenario + 1).padStart(2, '0')} · ${difficulties[state.difficulty].label} run`;
+  $('statusMessage').textContent = scene.chain ? `Quest chain · ${scene.chain}. This choice will be remembered.` : 'Field note. The wasteland is listening.';
   $('openingQuote').textContent = openingQuotes[Math.floor(Math.random() * openingQuotes.length)];
   renderInterlude();
   renderStats();
@@ -1270,6 +1446,7 @@ function renderScenario() {
   $('choices').innerHTML = '';
 
   renderCampaignContext(scene);
+  renderJournal();
   if (scene.campaignId) {
     $('storyInterlude').hidden = true;
     if (renderCampaignBeat(scene)) return;
@@ -1296,10 +1473,13 @@ function renderScenario() {
     const label = isDynamic ? choice.label : choice[0];
     const requiredItems = isDynamic ? [] : (choice[6]?.requires || []);
     const missingItems = requiredItems.filter((item) => !state.items.includes(item) && !state.inventory.some(i => String(i).toUpperCase() === String(item).toUpperCase()));
+    const tags = choicePressure(label);
+    const blocked = tags.includes('TOO INJURED');
     button.className = 'choice';
     button.type = 'button';
-    button.disabled = missingItems.length > 0 || (isDynamic === false && !choice);
-    button.textContent = missingItems.length ? `${label} [REQUIRES ${missingItems.join(', ')}]` : label;
+    button.disabled = missingItems.length > 0 || blocked || (isDynamic === false && !choice);
+    const tagText = [...(missingItems.length ? [`REQUIRES ${missingItems.join(', ')}`] : []), ...tags].join(' · ');
+    button.textContent = tagText ? `${label} [${tagText}]` : label;
     button.addEventListener('click', () => {
       playSFX('choice');
       if (isDynamic) {
@@ -1323,14 +1503,18 @@ function applyEventScene(scene) {
   state.supplies = Math.max(0, state.supplies + (effects.supplies || 0));
   state.luck = Math.max(0, Math.min(100, state.luck + (effects.luck || 0)));
   state.materials = Math.max(0, state.materials + (effects.materials || 0));
-  $('promptText').textContent = 'EVENT // NO DECISION';
-  $('statusMessage').textContent = 'FIELD NOTE // SOMETHING HAPPENED WHILE YOU WERE MOVING.';
+  $('promptText').textContent = 'Event. No decision.';
+  $('statusMessage').textContent = 'Field note. Something happened while you were moving.';
   renderStats();
   renderWorldState();
 }
 
 function nextScene() {
   if (state.runEnded || state.scenario >= state.route.length - 1) return;
+  const left = state.route[state.scenario];
+  if (left && state.sceneSnapshot && !state.journalLogged) recordJournal(left.title || 'Field', state.lastAction || 'Continue onward', summarizeChanges(state.sceneSnapshot), state.lastOutcome || '');
+  state.lastAction = '';
+  state.lastOutcome = '';
   state.scenario += 1;
   state.lastEvent = false;
   $('eventBanner').hidden = true;
@@ -1396,22 +1580,30 @@ function renderStats() {
     if (previous !== undefined && previous !== numericValue) {
       element.classList.add(numericValue > previous ? 'stat-rise' : 'stat-fall');
     }
-    element.classList.toggle('critical-low', ((id === 'suppliesValue' || id === 'foodValue') && numericValue <= 1) || (id === 'radiationValue' && numericValue >= 85));
+    element.classList.toggle('critical-low', ((id === 'suppliesValue' || id === 'foodValue') && numericValue <= 1) || (id === 'radiationValue' && numericValue >= 70) || (id === 'healthValue' && numericValue <= 35));
     if (id === 'healthValue') element.classList.toggle('damage-taken', previous !== undefined && numericValue < previous);
   });
-  // Glowing orb for survival odds - color aura from green (best) to black (worst)
+  const meter = (id, value, max) => { const el = $(id); if (el) el.style.width = `${clamp((Number(value) / max) * 100, 0, 100)}%`; };
+  meter('healthMeter', state.health, 100);
+  meter('radMeter', state.radiation, 100);
+  meter('waterMeter', state.supplies, 8);
+  meter('foodMeter', state.food, 8);
+  meter('luckMeter', state.luck, 100);
+  const flag = (id, on) => { const el = $(id); if (el) el.classList.toggle('is-low', on); };
+  flag('healthCard', state.health <= 35);
+  flag('waterCard', state.supplies <= 1);
+  flag('foodCard', state.food <= 1);
+  flag('luckCard', state.luck <= 30);
+  const radCard = $('radCard');
+  if (radCard) radCard.classList.toggle('is-alarm', state.radiation >= 70);
+  // Pulsing color indicator for survival odds (no percentage, color only)
   const orb = $('oddsOrb');
-  const oddsText = $('oddsValue');
-  if (orb && oddsText) {
+  if (orb) {
     let cls = 'green';
-    let col = '#a8ff60';
-    if (state.odds < 25) { cls = 'black'; col = '#222'; }
-    else if (state.odds < 45) { cls = 'red'; col = '#ff7b5d'; }
-    else if (state.odds < 70) { cls = 'grey'; col = '#888'; }
-    orb.className = `odds-orb ${cls}`;
-    orb.style.setProperty('--orb-color', col);
-    oddsText.textContent = `${state.odds}%`;
-    oddsText.style.color = col;
+    if (state.odds < 25) cls = 'black';
+    else if (state.odds < 45) cls = 'red';
+    else if (state.odds < 65) cls = 'amber';
+    orb.className = `heartbeat ${cls}`;
   }
   $('headerDay').textContent = String(state.day).padStart(3, '0');
   state.previousStats = { oddsValue: state.odds, healthValue: state.health, radiationValue: state.radiation, suppliesValue: state.supplies, foodValue: state.food, luckValue: state.luck };
@@ -1439,6 +1631,7 @@ function choose(index) {
   const choice = choiceList[index];
   if (!choice) return;
   state.choiceResolved = true;
+  state.lastAction = choice[0];
   const before = captureOutcome();
   if (choice[6]?.death) {
     state.health = 0;
@@ -1465,10 +1658,13 @@ function choose(index) {
   const needs = applyTravelNeeds(travelDays);
   document.querySelectorAll('.choice').forEach((button) => { button.disabled = true; });
   const randomEvent = (state.route[state.scenario].campaignId || state.route[state.scenario].special) ? null : maybeEvent();
-  const riskNote = resolveTravelRisk(choice);
+  const pressureNote = applyConditionPressure(choice[0]);
+  const riskNote = resolveTravelRisk(choice) + (pressureNote ? ' ' + pressureNote : '');
   const radiationResult = state.health > 0 ? resolveRadiationThreshold() : {status: 'death'};
   const currentScene = state.route[state.scenario];
   const choiceResult = personalizeNarrative(currentScene, choice[5]) + riskNote;
+  state.lastOutcome = choiceResult;
+  recordJournal(currentScene.title || 'Field', choice[0], summarizeChanges(before), choiceResult);
   setSceneText(randomEvent ? `${choiceResult}\n\n${randomEvent[0]}\n${randomEvent[1]}` : choiceResult);
   $('promptText').textContent = randomEvent ? 'EVENT INTERRUPTS THE ROAD...' : 'THE ROAD CONTINUES...';
   $('choices').innerHTML = '';
@@ -1476,10 +1672,14 @@ function choose(index) {
   renderWorldState();
   showOutcomeFeedback(before);
   renderCampaignContext(currentScene);
-  const shortageNote = needs.damage ? ` SHORTAGE DAMAGE // -${needs.damage} HEALTH.` : '';
-  $('statusMessage').textContent = `FIELD NOTE // ${travelDays ? '1 DAY OF TRAVEL' : 'REST AND CONVERSATION'}. DAY ${state.day} / 365. ${formatRations(state.supplies)} WATER, ${formatRations(state.food)} FOOD, ${state.radiation.toFixed(1)} RAD, ${state.health} HEALTH.${shortageNote}`;
+  const shortageNote = needs.damage ? ` Shortage damage: -${needs.damage} health.` : '';
+  $('statusMessage').textContent = `Field note. ${travelDays ? '1 day of travel' : 'Rest and conversation'}. Day ${state.day} of 365. ${formatRations(state.supplies)} water, ${formatRations(state.food)} food, ${state.radiation.toFixed(1)} rad, ${state.health} health.${shortageNote}`;
   saveGame();
-  if (radiationResult.status === 'death' || state.health <= 0) { showEnding(false, {title: riskNote ? 'THE SEARCH THAT COST EVERYTHING' : 'THE ROAD TAKES ITS DUE', text: choiceResult + (radiationResult.message ? '\n\n' + radiationResult.message : '')}); return; }
+  if (radiationResult.status === 'death' || state.health <= 0) {
+    state.sceneSnapshot = null;
+    showEnding(false, {title: riskNote ? 'THE SEARCH THAT COST EVERYTHING' : 'THE ROAD TAKES ITS DUE', text: choiceResult + (radiationResult.message ? '\n\n' + radiationResult.message : '')});
+    return;
+  }
   // The campaign resolves at its epilogue, not in the middle of a choice.
   showDecisionAftermath(before);
   const mutationNote = radiationResult.status === 'mutation' ? `\n\n${radiationResult.message}` : '';
@@ -1489,7 +1689,7 @@ function choose(index) {
 function showEnding(reached365 = false, death = null) {
   state.runEnded = true;
   const survived = state.health > 0 && reached365;
-  $('sceneTitle').textContent = survived ? 'DAY 365 // WELCOME TO HAVEN' : 'YOU DIED IN THE AFTERLIGHT';
+  $('sceneTitle').textContent = survived ? 'Day 365. Welcome to Haven' : 'You died in the afterlight';
   $('sceneText').textContent = survived ? 'The gates of Haven open. Clean water, a warm room, and a peaceful valley wait beyond them. For the first time since the apocalypse, you can sleep safely.' : 'The road continues without you. Hunger, thirst, or the wounds you carried finally became heavier than your will to move.';
   if (!survived && death) {
     $('sceneTitle').textContent = death.title;
@@ -1498,7 +1698,7 @@ function showEnding(reached365 = false, death = null) {
   }
   $('decisionAftermath').hidden = true;
   $('storyPanel').scrollTop = 0;
-  $('promptText').textContent = survived ? 'YOU SURVIVED THE AFTERLIGHT' : 'RUN OVER // RESTART REQUIRED';
+  $('promptText').textContent = survived ? 'You survived the afterlight' : 'Run over. Restart required.';
   $('choices').innerHTML = '';
   if (!survived) {
     const restartChoice = document.createElement('button');
@@ -1510,8 +1710,8 @@ function showEnding(reached365 = false, death = null) {
   }
   $('storyPanel').classList.toggle('outcome', true);
   $('storyPanel').classList.toggle('outcome--win', survived);
-  $('logLine').textContent = survived ? 'RUN COMPLETE // HAVEN REACHED' : 'RUN COMPLETE // SIGNAL LOST';
-  $('statusMessage').textContent = survived ? 'FIELD NOTE // CLEAN WATER. A SAFE ROOM. YOU ARE HOME.' : 'FIELD NOTE // HEALTH REACHED ZERO. THE RUN IS OVER.';
+  $('logLine').textContent = survived ? 'Run complete. Haven reached.' : 'Run complete. Signal lost.';
+  $('statusMessage').textContent = survived ? 'Field note. Clean water. A safe room. You are home.' : 'Field note. Health reached zero. The run is over.';
 }
 
 function toggleSound() {
@@ -1597,15 +1797,33 @@ function showDecisionAftermath(before) {
   const panel = $('decisionAftermath'); panel.textContent = notes.join(' '); panel.hidden = !notes.length;
 }
 
-// === FIREBASE AUTH INTEGRATION (replaces previous fake localStorage auth) ===
-// Uses window.AfterlightAuth from auth.js (onAuthStateChanged driven flow)
+// === FIREBASE AUTH INTEGRATION ===
+// Username stays on screen. Firebase still needs an email, so the username is
+// mapped to the project domain (a .local address is rejected as invalid-email).
+
+const AUTH_EMAIL_DOMAIN = 'afterlife-989b5.firebaseapp.com';
+let activeAuthUid = undefined;
+let authBusy = false;
+let authSettled = false;
+let pendingAuth = null;
+
+function clearAuthError(id) {
+  const el = $(id);
+  if (!el) return;
+  el.hidden = true;
+  el.textContent = '';
+}
 
 function showLogin() {
   const loading = $('authLoading');
   const loginF = $('loginForm');
   const createF = $('createForm');
   const setup = $('gameSetup');
+  const account = $('accountSection');
+  clearAuthError('loginError');
+  clearAuthError('createError');
   if (loading) loading.hidden = true;
+  if (account) account.hidden = false;
   if (loginF) loginF.hidden = false;
   if (createF) createF.hidden = true;
   if (setup) setup.hidden = true;
@@ -1615,6 +1833,10 @@ function showCreate() {
   const loginF = $('loginForm');
   const createF = $('createForm');
   const setup = $('gameSetup');
+  const account = $('accountSection');
+  clearAuthError('loginError');
+  clearAuthError('createError');
+  if (account) account.hidden = false;
   if (loginF) loginF.hidden = true;
   if (createF) createF.hidden = false;
   if (setup) setup.hidden = true;
@@ -1624,95 +1846,197 @@ function showGameSetup() {
   const account = $('accountSection');
   const setup = $('gameSetup');
   const loading = $('authLoading');
+  const start = $('startScreen');
   if (loading) loading.hidden = true;
+  if (start) start.hidden = false;
   if (account) account.hidden = true;
   if (setup) setup.hidden = false;
   renderStartingDifficulty();
   renderStartingBackground();
 }
 
-// Real Firebase handlers (errors shown user-friendly)
-async function handleLogin() {
-  const userEl = $('loginUser');
-  const passEl = $('loginPass');
-  const username = (userEl ? userEl.value : '').trim();
-  const pass = passEl ? passEl.value : '';
-  if (!username || !pass) {
-    alert('Username and password required.');
-    return;
-  }
-  if (pass.length < 4) {
-    alert('Password must be at least 4 characters.');
-    return;
-  }
-  let sanitized = username.toLowerCase().replace(/[^a-z0-9]/g, '');
-  if (!sanitized) sanitized = 'user' + Date.now().toString(36).slice(-6);
-  const email = sanitized + '@afterlight.local';
-  try {
-    await window.AfterlightAuth.login(email, pass);
-    // onAuthStateChanged will drive the UI transition / load
-  } catch (err) {
-    alert(getAuthErrorMessage(err));
-  }
+function showAuthError(form, msg) {
+  if (form === 'create') showCreate();
+  else showLogin();
+  const el = $(form === 'create' ? 'createError' : 'loginError');
+  if (!el) return;
+  el.hidden = false;
+  el.textContent = msg;
 }
 
-async function handleCreate() {
-  const userEl = $('createUser');
-  const p1El = $('createPass');
-  const p2El = $('createPass2');
-  const username = (userEl ? userEl.value : '').trim();
-  const p1 = p1El ? p1El.value : '';
-  const p2 = p2El ? p2El.value : '';
-  if (!username || !p1) { alert('Username and password required.'); return; }
-  if (p1.length < 4) { alert('Password must be at least 4 characters.'); return; }
-  if (p1 !== p2) { alert('Passwords do not match.'); return; }
-  let sanitized = username.toLowerCase().replace(/[^a-z0-9]/g, '');
-  if (!sanitized) sanitized = 'user' + Date.now().toString(36).slice(-6);
-  const email = sanitized + '@afterlight.local';
-  try {
-    await window.AfterlightAuth.createAccount(email, p1);
-    // onAuth will transition
-  } catch (err) {
-    alert(getAuthErrorMessage(err));
-  }
+function usernameKey(username) {
+  return String(username || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
-async function handleGuest() {
-  try {
-    await window.AfterlightAuth.loginGuest();
-    // onAuth handles entry to game/setup
-  } catch (err) {
-    alert(getAuthErrorMessage(err));
-  }
+function usernameEmails(username) {
+  const key = usernameKey(username);
+  if (!key) return [];
+  return [key + '@' + AUTH_EMAIL_DOMAIN, key + '@afterlight.local'];
 }
 
 function getAuthErrorMessage(err) {
   const code = (err && err.code) || '';
-  if (code.includes('email-already-in-use')) return 'An account with this username already exists.';
-  if (code.includes('weak-password')) return 'Password must be at least 4 characters.';
-  if (code.includes('invalid-email')) return 'Please enter a valid username.';
+  const message = (err && err.message) || '';
+  if (location.protocol === 'file:') return 'Open the game at http://127.0.0.1:8000/index.html. A file link cannot sign in.';
+  if (code.includes('api-key-not-valid') || /api key/i.test(message)) return 'Sign-in was rejected by the project key. Use http://127.0.0.1:8000/index.html, allow that address on the Google Cloud API key, and add it as a Firebase authorized domain.';
+  if (code.includes('unauthorized-domain')) return 'This address is not allowed to sign in. Add localhost and 127.0.0.1 in Firebase Authentication > Settings > Authorized domains.';
+  if (code.includes('email-already-in-use')) return 'An account with this username already exists. Log in instead.';
+  if (code.includes('weak-password')) return 'Password must be at least 6 characters. That limit is enforced by the sign-in service.';
+  if (code.includes('invalid-email')) return 'Use a username with letters or numbers.';
   if (code.includes('user-not-found') || code.includes('wrong-password') || code.includes('invalid-credential')) return 'Invalid username or password.';
-  if (code.includes('too-many-requests')) return 'Too many attempts. Try again later.';
-  if (code.includes('operation-not-allowed')) return 'Guest or email sign-in not enabled. Go to Firebase Console > Authentication > Sign-in method and enable both Email/Password and Anonymous.';
-  return 'Authentication failed. ' + (err && err.message ? err.message : 'Please try again.');
+  if (code.includes('too-many-requests')) return 'Too many attempts. Wait a moment and try again.';
+  if (code.includes('operation-not-allowed') || code.includes('admin-restricted-operation')) return 'That sign-in method is turned off. In Firebase Console > Authentication > Sign-in method, enable Email/Password and Anonymous.';
+  if (code.includes('network-request-failed')) return 'Could not reach the sign-in service. Check your connection and try again.';
+  if (/Firebase not loaded/i.test(message)) return 'The sign-in service did not load. Check your connection and reload.';
+  return 'Sign-in failed. ' + (message ? message.replace(/^Firebase:\s*/i, '') : 'Please try again.');
 }
 
-// Wire main buttons (switches use inline onclick preserved for the forms)
+async function withAuthButton(button, form, work) {
+  if (authBusy) return;
+  if (!window.AfterlightAuth) {
+    showAuthError(form, 'The sign-in service did not load. Reload and try again.');
+    return;
+  }
+  authBusy = true;
+  const label = button ? button.textContent : '';
+  if (button) { button.disabled = true; button.textContent = 'LINKING...'; }
+  try {
+    await work();
+  } catch (err) {
+    showAuthError(form, getAuthErrorMessage(err));
+  } finally {
+    authBusy = false;
+    if (button) { button.disabled = false; button.textContent = label; }
+  }
+}
+
+async function handleLogin() {
+  const username = ($('loginUser') ? $('loginUser').value : '').trim();
+  const pass = $('loginPass') ? $('loginPass').value : '';
+  if (!username || !pass) { showAuthError('login', 'Username and password required.'); return; }
+  if (pass.length < 6) { showAuthError('login', 'Password must be at least 6 characters.'); return; }
+  const emails = usernameEmails(username);
+  if (!emails.length) { showAuthError('login', 'Use a username with letters or numbers.'); return; }
+  await withAuthButton($('loginBtn'), 'login', async () => {
+    let last;
+    for (let i = 0; i < emails.length; i++) {
+      try {
+        await window.AfterlightAuth.login(emails[i], pass);
+        return;
+      } catch (err) {
+        last = err;
+        const code = (err && err.code) || '';
+        const missing = code.includes('user-not-found') || code.includes('invalid-credential') || code.includes('invalid-email');
+        if (!missing || i === emails.length - 1) throw err;
+      }
+    }
+    throw last;
+  });
+}
+
+async function handleCreate() {
+  const username = ($('createUser') ? $('createUser').value : '').trim();
+  const p1 = $('createPass') ? $('createPass').value : '';
+  const p2 = $('createPass2') ? $('createPass2').value : '';
+  if (!username || !p1) { showAuthError('create', 'Username and password required.'); return; }
+  if (!usernameKey(username)) { showAuthError('create', 'Use a username with letters or numbers.'); return; }
+  if (p1.length < 6) { showAuthError('create', 'Password must be at least 6 characters. That limit is enforced by the sign-in service.'); return; }
+  if (p1 !== p2) { showAuthError('create', 'Passwords do not match.'); return; }
+  await withAuthButton($('createBtn'), 'create', () => window.AfterlightAuth.createAccount(usernameEmails(username)[0], p1));
+}
+
+async function handleGuest() {
+  await withAuthButton($('playGuest'), 'login', () => window.AfterlightAuth.loginGuest());
+}
+
+function updateUserChrome(user) {
+  const logoutBtn = $('logoutButton');
+  const statusEl = $('userStatus');
+  if (logoutBtn) {
+    logoutBtn.hidden = false;
+    logoutBtn.style.display = '';
+  }
+  if (statusEl) { statusEl.hidden = true; statusEl.textContent = ''; statusEl.style.display = 'none'; }
+}
+
+function enterSavedRun() {
+  const start = $('startScreen');
+  if (start) start.hidden = true;
+  renderDifficultyButtons();
+  if (!state.audio) toggleSound();
+  renderScenario();
+}
+
+function applyAuthUser(user, err) {
+  pendingAuth = { user, err };
+  if (!authSettled && !err) return;
+  const loading = $('authLoading');
+  if (loading) loading.hidden = true;
+  if (err) {
+    activeAuthUid = null;
+    const start = $('startScreen');
+    if (start) start.hidden = false;
+    updateUserChrome(null);
+    showAuthError('login', getAuthErrorMessage(err));
+    return;
+  }
+  if (user) {
+    if (activeAuthUid === user.uid) {
+      updateUserChrome(user);
+      return;
+    }
+    activeAuthUid = user.uid;
+    const loaded = loadGame();
+    state = loaded || defaultState();
+    updateUserChrome(user);
+    if (state.started && state.day > 0 && !state.runEnded) enterSavedRun();
+    else showGameSetup();
+    return;
+  }
+  activeAuthUid = null;
+  state = defaultState();
+  updateUserChrome(null);
+  const start = $('startScreen');
+  if (start) start.hidden = false;
+  showLogin();
+  if (location.protocol === 'file:') showAuthError('login', getAuthErrorMessage({ code: 'auth/unauthorized-domain', message: 'file' }));
+}
+
+window.showLogin = showLogin;
+window.showCreate = showCreate;
+window.handleGuest = handleGuest;
+
 if ($('loginBtn')) $('loginBtn').addEventListener('click', handleLogin);
 if ($('createBtn')) $('createBtn').addEventListener('click', handleCreate);
+if ($('showCreate')) $('showCreate').addEventListener('click', (event) => { event.preventDefault(); showCreate(); });
+if ($('showLogin')) $('showLogin').addEventListener('click', (event) => { event.preventDefault(); showLogin(); });
+if ($('playGuest')) $('playGuest').addEventListener('click', (event) => { event.preventDefault(); handleGuest(); });
+['loginUser', 'loginPass'].forEach((id) => {
+  const el = $(id);
+  if (el) el.addEventListener('keydown', (event) => { if (event.key === 'Enter') handleLogin(); });
+});
+['createUser', 'createPass', 'createPass2'].forEach((id) => {
+  const el = $(id);
+  if (el) el.addEventListener('keydown', (event) => { if (event.key === 'Enter') handleCreate(); });
+});
 
-// Start game from setup (unchanged flow)
 if ($('startGameBtn')) $('startGameBtn').addEventListener('click', () => {
   const name = $('survivorName').value.trim();
-  if (!name) { $('survivorName').focus(); return; }
+  const setupError = $('setupError');
+  if (!name) {
+    if (setupError) { setupError.hidden = false; setupError.textContent = 'Enter a survivor name to begin.'; }
+    $('survivorName').focus();
+    return;
+  }
+  if (setupError) setupError.hidden = true;
+  const chosenBackground = selectedBackground || 'NONE';
   const activeButton = $('startingDifficulty').querySelector('.is-active');
   const selectedDifficulty = Object.entries(difficulties).find(([, mode]) => mode.label === activeButton?.textContent)?.[0];
   state.difficulty = selectedDifficulty || state.difficulty;
   state.playerName = name.toUpperCase();
-  state.background = selectedBackground || 'NONE';
   setDifficulty(state.difficulty);
-  // background bonuses
-  const bg = backgrounds[state.background];
+  state.background = chosenBackground;
+  const bg = backgrounds[chosenBackground];
   if (bg && bg.stats) {
     if (bg.stats.health) state.health = clamp(state.health + bg.stats.health, 50, 120);
     if (bg.stats.luck) state.luck = clamp(state.luck + bg.stats.luck, 0, 100);
@@ -1724,92 +2048,55 @@ if ($('startGameBtn')) $('startGameBtn').addEventListener('click', () => {
     if (bg.stats.reputation) state.reputation = Math.max(0, state.reputation + bg.stats.reputation);
     if (bg.stats.crowns) state.crowns = Math.max(0, state.crowns + bg.stats.crowns);
   }
-  // starters
   if (state.background === 'soldier') addToInventory('RUSTED REVOLVER');
   if (state.background === 'scavenger') addToInventory('MAKESHIFT BACKPACK');
   if (state.background === 'medic') addToInventory('MEDIC COMPANION KIT');
   state.started = true;
   $('startScreen').hidden = true;
-  renderDifficultyButtons();
   if (!state.audio) toggleSound();
   saveGame();
-  // Launch the actual game
   renderScenario();
-  renderStats();
-  renderWorldState();
 });
 
-// Firebase auth state drives the entire login / resume flow
-// This prevents flashing the login UI while a session is being restored.
 if (window.AfterlightAuth && typeof window.AfterlightAuth.onAuthStateChanged === 'function') {
-  window.AfterlightAuth.onAuthStateChanged((user) => {
-    const start = $('startScreen');
-    const account = $('accountSection');
+  window.AfterlightAuth.onAuthStateChanged(applyAuthUser);
+  const settle = () => {
+    authSettled = true;
+    if (pendingAuth) applyAuthUser(pendingAuth.user, pendingAuth.err);
+  };
+  if (typeof window.AfterlightAuth.ready === 'function') window.AfterlightAuth.ready().then(settle, settle);
+  else settle();
+  setTimeout(() => {
     const loading = $('authLoading');
-    const loginF = $('loginForm');
-    const createF = $('createForm');
-    const logoutBtn = $('logoutButton');
-
-    if (loading) loading.hidden = true;
-
-    if (user) {
-      // Authenticated (email or anonymous guest) - do not show login forms
-      if (loginF) loginF.hidden = true;
-      if (createF) createF.hidden = true;
-      if (account) account.hidden = true;
-
-      if (logoutBtn) {
-        logoutBtn.style.display = '';
-        logoutBtn.onclick = async () => {
-          try {
-            await window.AfterlightAuth.logout();
-            // onAuthStateChanged(null) will handle showing login UI
-          } catch (e) { console.warn(e); }
-        };
-      }
-      const statusEl = $('userStatus');
-      if (statusEl) {
-        const disp = window.AfterlightAuth ? window.AfterlightAuth.getUserDisplay() : '';
-        statusEl.textContent = window.AfterlightAuth && window.AfterlightAuth.isGuest() ? 'GUEST' : (disp || '');
-        statusEl.style.display = '';
-      }
-
-      const loaded = loadGame();
-      if (loaded) state = loaded;
-
-      if (state.started && state.day > 0) {
-        if (start) start.hidden = true;
-        renderDifficultyButtons();
-        if (!state.audio) toggleSound();
-        renderScenario();
-        renderStats();
-        renderWorldState();
-      } else {
-        if (start) start.hidden = false;
-        showGameSetup();
-      }
-    } else {
-      // No user - show login UI. Ensure start screen visible.
-      if (start) start.hidden = false;
-      if (account) account.hidden = false;
-      if (loginF) loginF.hidden = false;
-      if (createF) createF.hidden = true;
-      const setup = $('gameSetup');
-      if (setup) setup.hidden = true;
-
-      if (logoutBtn) logoutBtn.style.display = 'none';
-      const statusEl = $('userStatus');
-      if (statusEl) statusEl.style.display = 'none';
+    if (loading && !loading.hidden) {
+      showAuthError('login', 'The secure link timed out. Check your connection and reload.');
     }
-  });
-} else {
-  // Fallback if auth module not present (dev)
-  if ($('startScreen')) $('startScreen').hidden = false;
+  }, 8000);
+} else if ($('startScreen')) {
+  $('startScreen').hidden = false;
   showLogin();
+  showAuthError('login', 'The sign-in service did not load. Reload and try again.');
 }
 
 // Wire restart button (was missing listener)
 if ($('restartButton')) $('restartButton').addEventListener('click', restart);
+if ($('simpleViewButton')) $('simpleViewButton').addEventListener('click', () => {
+  const on = document.body.classList.toggle('simple-view');
+  $('simpleViewButton').textContent = on ? 'FULL VIEW' : 'SIMPLE VIEW';
+  $('simpleViewButton').setAttribute('aria-pressed', String(on));
+});
+if ($('intelTab')) $('intelTab').addEventListener('click', () => {
+  const panel = $('intelPanel');
+  if (!panel) return;
+  panel.hidden = !panel.hidden;
+  $('intelTab').setAttribute('aria-expanded', String(!panel.hidden));
+  $('intelTab').textContent = panel.hidden ? '>>' : '<<';
+});
+if ($('logoutButton')) $('logoutButton').addEventListener('click', async () => {
+  if (!window.AfterlightAuth) return;
+  try { await window.AfterlightAuth.logout(); }
+  catch (err) { showAuthError('login', getAuthErrorMessage(err)); }
+});
 
 // Wire upper GUI buttons
 if ($('inventoryButton')) $('inventoryButton').addEventListener('click', () => toggleInventory());

@@ -6,59 +6,62 @@
   <title>Afterlight: A Survival Story</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=4">
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Share+Tech+Mono&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=11">
 </head>
 <body>
   <section class="start-screen" id="startScreen" aria-labelledby="briefingTitle">
-    <div class="start-card" style="max-width:480px;text-align:center;">
+    <div class="start-card">
       <div class="eyebrow"><span class="pulse"></span> RECOVERED TRANSMISSION // 2094</div>
       <h2 style="font-size:42px;margin:12px 0; text-shadow: 0 0 12px var(--ink);">AFTERLIGHT</h2>
       <p style="font-size:16px;color:#9bd982;margin-bottom:20px; line-height:1.3;">A post-apocalyptic survival story.<br>Reach Haven by day 365.</p>
 
       <!-- Account UI -->
       <div id="accountSection">
-        <div id="authLoading" style="padding: 12px 0; font-size:13px; color:#a8ff60; opacity:0.8;">ESTABLISHING SECURE LINK TO THE WASTES...</div>
-        <div id="loginForm" hidden>
-          <h3 style="font-size:22px;margin:12px 0; color:#a8ff60;">LOGIN TO YOUR RUN</h3>
-          <input id="loginUser" placeholder="Username" style="width:90%;margin:6px;padding:10px;background:#0a120e;border:1px solid var(--line);color:#a8ff60; font-size:16px;">
-          <input id="loginPass" type="password" placeholder="Password" style="width:90%;margin:6px;padding:10px;background:#0a120e;border:1px solid var(--line);color:#a8ff60; font-size:16px;">
-          <button class="start-button" id="loginBtn" style="width:90%;margin:12px 0; font-size:14px;">LOGIN &amp; CONTINUE</button>
-          <div style="font-size:13px;margin:8px;">
-            <a href="#" id="showCreate" class="text-link" onclick="showCreate(); return false;">Create new account</a> &nbsp; | &nbsp; 
-            <a href="#" id="playGuest" class="text-link" onclick="handleGuest(); return false;">Play as Guest</a>
+        <div id="authLoading" class="auth-loading">ESTABLISHING SECURE LINK TO THE WASTES...</div>
+        <div id="loginForm" class="auth-form" hidden>
+          <h3>LOGIN TO YOUR RUN</h3>
+          <input id="loginUser" class="auth-input" placeholder="Username" autocomplete="username">
+          <input id="loginPass" class="auth-input" type="password" placeholder="Password" autocomplete="current-password">
+          <p id="loginError" class="auth-error" hidden></p>
+          <button class="start-button" id="loginBtn" type="button">LOGIN &amp; CONTINUE</button>
+          <div class="auth-links">
+            <button type="button" id="showCreate" class="text-link">Create new account</button>
+            <button type="button" id="playGuest" class="text-link">Play as Guest</button>
           </div>
         </div>
-        <div id="createForm" hidden>
-          <h3 style="font-size:22px;margin:12px 0; color:#a8ff60;">CREATE ACCOUNT</h3>
-          <input id="createUser" placeholder="Username" style="width:90%;margin:6px;padding:10px;background:#0a120e;border:1px solid var(--line);color:#a8ff60; font-size:16px;">
-          <input id="createPass" type="password" placeholder="Password" style="width:90%;margin:6px;padding:10px;background:#0a120e;border:1px solid var(--line);color:#a8ff60; font-size:16px;">
-          <input id="createPass2" type="password" placeholder="Confirm password" style="width:90%;margin:6px;padding:10px;background:#0a120e;border:1px solid var(--line);color:#a8ff60; font-size:16px;">
-          <button class="start-button" id="createBtn" style="width:90%;margin:12px 0; font-size:14px;">CREATE &amp; START</button>
-          <div style="font-size:13px;"><a href="#" id="showLogin" class="text-link" onclick="showLogin(); return false;">Back to login</a></div>
+        <div id="createForm" class="auth-form" hidden>
+          <h3>CREATE ACCOUNT</h3>
+          <input id="createUser" class="auth-input" placeholder="Username" autocomplete="username">
+          <input id="createPass" class="auth-input" type="password" placeholder="Password (6+ characters)" autocomplete="new-password">
+          <input id="createPass2" class="auth-input" type="password" placeholder="Confirm password" autocomplete="new-password">
+          <p id="createError" class="auth-error" hidden></p>
+          <button class="start-button" id="createBtn" type="button">CREATE &amp; START</button>
+          <div class="auth-links"><button type="button" id="showLogin" class="text-link">Back to login</button></div>
         </div>
       </div>
 
       <!-- Game setup after login/guest -->
       <div id="gameSetup" hidden>
         <div class="name-field">
-          <label for="survivorName" style="font-size:14px;">YOUR SURVIVOR NAME</label>
-          <input id="survivorName" maxlength="20" placeholder="Enter a name" autocomplete="off" style="font-size:16px;padding:8px;">
-          <label class="difficulty-label" style="font-size:14px;">STARTING DIFFICULTY (Locked after start)</label>
+          <label for="survivorName">YOUR SURVIVOR NAME</label>
+          <input id="survivorName" maxlength="20" placeholder="Enter a name" autocomplete="off">
+          <label class="difficulty-label">STARTING DIFFICULTY (Locked after start)</label>
           <div class="difficulty-buttons" id="startingDifficulty"></div>
-          <label class="difficulty-label" style="font-size:14px;">BACKGROUND</label>
+          <label class="difficulty-label">BACKGROUND</label>
           <div class="difficulty-buttons" id="startingBackground"></div>
         </div>
-          <button class="start-button" id="startGameBtn" style="margin-top:12px;width:90%;font-size:14px;">ENTER THE WASTELAND</button>
-        <div style="font-size:11px;margin-top:8px;opacity:0.7;">Simple survival. Make choices. Reach Haven.</div>
+        <p id="setupError" class="auth-error" hidden></p>
+        <button class="start-button" id="startGameBtn" type="button">ENTER THE WASTELAND</button>
+        <p class="setup-note">Simple survival. Make choices. Reach Haven.</p>
       </div>
     </div>
   </section>
   <main class="shell">
     <header class="topbar">
-      <div class="brand"><span class="brand-mark">A/</span><span>AFTERLIGHT</span></div>
-      <div class="chapter-label">FIELD LOG <span id="chapterNumber">01</span> // DAY <span id="headerDay">01</span></div>
-      <div class="top-actions"><button id="inventoryButton" class="top-button" type="button">INVENTORY</button><button id="matureButton" class="top-button" type="button" aria-pressed="false" title="Enable more detailed non-explicit romance and graphic horror in upcoming scenes">MATURE TEXT: OFF</button><button id="tutorialButton" class="top-button" type="button" aria-haspopup="dialog" aria-controls="tutorialPanel" aria-expanded="false">TUTORIAL</button><button id="soundButton" class="top-button" type="button" aria-pressed="false">SOUND: OFF</button><button id="logoutButton" class="top-button" type="button" style="display:none;">LOGOUT</button><span id="userStatus" style="font-size:9px;opacity:0.6;margin-left:6px;"></span></div>
+      <div class="brand"><span>AFTERLIGHT</span></div>
+      <div class="chapter-label">FIELD LOG <span id="chapterNumber">01</span> · DAY <span id="headerDay">01</span></div>
+      <div class="top-actions"><button id="inventoryButton" class="top-button" type="button">INVENTORY</button><button id="matureButton" class="top-button" type="button" aria-pressed="false" title="Enable more detailed non-explicit romance and graphic horror in upcoming scenes">MATURE TEXT: OFF</button><button id="tutorialButton" class="top-button" type="button" aria-haspopup="dialog" aria-controls="tutorialPanel" aria-expanded="false">TUTORIAL</button><button id="soundButton" class="top-button" type="button" aria-pressed="false">SOUND: OFF</button><button id="simpleViewButton" class="top-button" type="button" aria-pressed="false">SIMPLE VIEW</button><button id="logoutButton" class="top-button top-button--logout" type="button">LOG OUT</button></div>
     </header>
 
     <section class="intro-panel" aria-labelledby="gameTitle" style="display:none;">
@@ -73,28 +76,28 @@
     </section>
 
     <section class="status-grid" aria-label="Survival status">
-       <div class="status-card status-card--primary odds-orb-card"><span class="status-label">SURVIVAL ODDS</span><div id="oddsOrb" class="odds-orb" title="Green = high odds, black = dire"></div><div id="oddsValue" style="font-size:10px;margin-top:2px;"></div></div>
-      <div class="status-card"><span class="status-label">HEALTH</span><strong id="healthValue">78</strong><span class="status-note">VITALITY</span></div>
-      <div class="status-card"><span class="status-label">RAD EXPOSURE</span><strong id="radiationValue">12</strong><span class="status-note">MUTATION RISK</span></div>
-      <div class="status-card"><span class="status-label">WATER</span><strong id="suppliesValue">3</strong><span class="status-note">WATER RATIONS</span></div>
-      <div class="status-card"><span class="status-label">FOOD</span><strong id="foodValue">6</strong><span class="status-note">MEALS REMAINING</span></div>
-      <div class="status-card"><span class="status-label">LUCK</span><strong id="luckValue">50</strong><span class="status-note">THE WASTES REMEMBER</span></div>
+      <div class="status-card status-card--odds"><span class="status-label">SURVIVAL RATE</span><div id="oddsOrb" class="heartbeat green" title="Green is stable. Red is bad. Black is worse."><svg viewBox="0 0 200 48" preserveAspectRatio="none" aria-hidden="true"><polyline class="heartbeat-line" points="0,26 16,26 24,26 30,18 36,26 44,26 52,26 58,4 66,44 74,12 82,26 100,26 116,26 124,26 130,18 136,26 144,26 152,26 158,4 166,44 174,12 182,26 200,26" /></svg></div></div>
+      <div class="status-card status-card--health" id="healthCard"><span class="status-label"><span class="mark">✚</span> HEALTH</span><strong id="healthValue">78</strong><span class="gauge"><span id="healthMeter"></span></span><span class="status-note">VITAL MONITOR</span></div>
+      <div class="status-card status-card--rad" id="radCard"><span class="status-label"><span class="mark">☢</span> RAD EXPOSURE</span><strong id="radiationValue">12</strong><span class="gauge"><span id="radMeter"></span></span><span class="status-note">GEIGER</span></div>
+      <div class="status-card status-card--water" id="waterCard"><span class="status-label">WATER</span><strong id="suppliesValue">3</strong><span class="gauge"><span id="waterMeter"></span></span><span class="status-note">RESERVE</span></div>
+      <div class="status-card status-card--food" id="foodCard"><span class="status-label">FOOD</span><strong id="foodValue">6</strong><span class="gauge"><span id="foodMeter"></span></span><span class="status-note">RATIONS</span></div>
+      <div class="status-card status-card--luck" id="luckCard"><span class="status-label">LUCK</span><strong id="luckValue">50</strong><span class="gauge"><span id="luckMeter"></span></span><span class="status-note">THE WASTES REMEMBER</span></div>
     </section>
 
     <aside class="event-banner" id="eventBanner" hidden></aside>
-    <p class="status-message" id="statusMessage">FIELD NOTE // Pick a path. The wasteland is listening.</p>
+    <p class="status-message" id="statusMessage">Field note. Pick a path. The wasteland is listening.</p>
     <div class="world-readout" aria-label="World relationships and inventory">
       <span class="world-entry world-entry--name"><span class="entry-label">NAME</span><strong id="nameValue">SURVIVOR</strong></span>
-      <span class="world-entry world-entry--base"><span class="entry-label">BASE</span><strong id="baseValue">NONE</strong></span>
-      <span class="world-entry world-entry--allies"><span class="entry-label">ALLIES</span><strong id="alliesValue">NONE</strong></span>
-      <span class="world-entry world-entry--lovers"><span class="entry-label">LOVERS</span><strong id="loversValue">NONE</strong></span>
-      <span class="world-entry world-entry--enemies"><span class="entry-label">ENEMIES</span><strong id="enemiesValue">NONE</strong></span>
-      <span class="world-entry world-entry--items"><span class="entry-label">ITEMS</span><strong id="itemsValue">NONE</strong></span>
-      <span class="world-entry world-entry--materials"><span class="entry-label">MATERIALS</span><strong id="materialsValue">0</strong></span>
-      <span class="world-entry world-entry--reputation"><span class="entry-label">REPUTATION</span><strong id="reputationValue">0</strong></span>
+      <span class="world-entry world-entry--base" hidden><span class="entry-label">BASE</span><strong id="baseValue">NONE</strong></span>
+      <span class="world-entry world-entry--allies" hidden><span class="entry-label">ALLIES</span><strong id="alliesValue">NONE</strong></span>
+      <span class="world-entry world-entry--lovers" hidden><span class="entry-label">LOVERS</span><strong id="loversValue">NONE</strong></span>
+      <span class="world-entry world-entry--enemies" hidden><span class="entry-label">ENEMIES</span><strong id="enemiesValue">NONE</strong></span>
+      <span class="world-entry world-entry--items" hidden><span class="entry-label">ITEMS</span><strong id="itemsValue">NONE</strong></span>
+      <span class="world-entry world-entry--materials" hidden><span class="entry-label">MATERIALS</span><strong id="materialsValue">0</strong></span>
+      <span class="world-entry world-entry--reputation" hidden><span class="entry-label">REPUTATION</span><strong id="reputationValue">0</strong></span>
       <span class="world-entry world-entry--morality"><span class="entry-label">MORALITY</span><strong id="moralityValue">HUMAN</strong></span>
        <span class="world-entry"><span class="entry-label">RACE</span><strong id="raceValue">HUMAN</strong></span>
-       <span class="world-entry"><span class="entry-label">BACKGROUND</span><strong id="backgroundValue">NONE</strong></span>
+       <span class="world-entry world-entry--background" hidden><span class="entry-label">BACKGROUND</span><strong id="backgroundValue">NONE</strong></span>
        <span class="world-entry"><span class="entry-label">HUMANITY</span><strong id="humanityValue">100</strong></span>
       <span class="world-entry world-entry--gold"><span class="entry-label">GOLD</span><strong id="crownsValue">25</strong></span>
     </div>
@@ -184,7 +187,7 @@
     </dialog>
     <dialog class="tutorial-panel" id="inventoryPanel" aria-labelledby="inventoryTitle">
       <div class="tutorial-heading"><span id="inventoryTitle">INVENTORY // GEAR &amp; SUPPLIES</span><button id="closeInventory" class="close-button" type="button" aria-label="Close inventory">×</button></div>
-      <div id="inventoryContent" style="font-size:13px;line-height:1.5;">
+      <div id="inventoryContent" style="font-size:16px;line-height:1.5;">
         <div><strong>EQUIPPED</strong></div>
         <div id="equipSlots" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:6px;margin:8px 0;"></div>
         <div style="margin-top:8px;"><strong>CARRIED</strong> <span id="invCount"></span></div>
@@ -194,23 +197,32 @@
     </dialog>
     <section class="story-panel" id="storyPanel" aria-live="polite">
       <div class="special-event-badge" id="specialEventBadge" hidden></div>
-      <p class="campaign-context" id="campaignContext"></p>
-      <aside class="radio-log" aria-label="Radio message and route clues">
-        <p id="radioMessage">RADIO // Waiting for a verified signal.</p>
-        <p id="baseBuffValue"></p>
-        <p id="routeClues">ROUTE NOTES // No verified clues yet.</p>
-      </aside>
-      <div class="story-meta"><span id="sceneType" class="scene-type">ENCOUNTER</span><span id="location" class="location-readout">OUTSKIRTS // SECTOR 7</span></div>
+      <div class="story-meta"><span id="location" class="location-readout">Outskirts · Sector 7</span></div>
       <h2 id="sceneTitle">A LIGHT IN THE DEAD RAIL YARD</h2>
       <p id="sceneText">Your cracked radio catches a voice beneath the static. Someone is broadcasting from the old rail yard, offering shelter for anyone who can hear. The yard is two hours east. Between you and the signal: a minefield that nobody has bothered to map since the bombs fell.</p>
       <div class="story-interlude" id="storyInterlude" hidden></div>
       <p class="decision-aftermath" id="decisionAftermath" hidden></p>
       <p class="choice-outcome" id="choiceOutcome" hidden></p>
+      <div class="quest-bar">
+        <button type="button" class="quest-toggle" id="intelTab" aria-expanded="false" aria-controls="intelPanel" title="Quest details">&gt;&gt;</button>
+        <span id="questLine">Current quest</span>
+        <span id="sceneType" class="scene-type">ENCOUNTER</span>
+      </div>
+      <div class="quest-panel" id="intelPanel" hidden>
+        <p class="quest-title" id="campaignContext">Survive the road to Haven.</p>
+        <p id="radioMessage">Waiting for a verified signal.</p>
+        <p id="baseBuffValue">Choose a support network to gain its benefits.</p>
+        <p id="routeClues">No verified clues yet.</p>
+        <div class="quest-recent" id="recentTasks">No earlier tasks yet.</div>
+      </div>
       <p class="prompt" id="promptText">What do you do?</p>
       <div class="choices" id="choices"></div>
     </section>
-
-    <footer class="footer"><span id="logLine">LOG 01 // MAKE YOUR FIRST CALL</span><div class="footer-actions"><div class="contact-links"><span class="contact-name">EVAN BARTKOWSKI</span><a href="mailto:evan.bartkowski@icloud.com">EMAIL</a><a href="https://www.linkedin.com/in/evan-bartkowski-31274b299/" target="_blank" rel="noreferrer">LINKEDIN</a><a href="https://github.com/evanbartkowski" target="_blank" rel="noreferrer">GITHUB</a></div><button id="restartButton" class="restart-button" type="button">RESTART RUN <span>↻</span></button></div></footer>
+    <details class="journal" id="journalPanel">
+      <summary>Field journal</summary>
+      <div id="journalList">No entries yet.</div>
+    </details>
+    <footer class="footer"><span id="logLine">Log 01 · Make your first call</span><div class="credit-block"><span class="credit-label">Created by:</span><span class="contact-name">EVAN BARTKOWSKI</span><a class="credit-mail" href="mailto:evan.bartkowski@icloud.com">EMAIL</a><a class="credit-linkedin" href="https://www.linkedin.com/in/evan-bartkowski-31274b299/" target="_blank" rel="noreferrer">LINKEDIN</a><a class="credit-github" href="https://github.com/evanbartkowski" target="_blank" rel="noreferrer">GITHUB</a></div><button id="restartButton" class="restart-button" type="button">RESTART RUN <span>↻</span></button></footer>
   </main>
   <audio id="backgroundMusic" preload="auto" aria-hidden="true"></audio>
 
