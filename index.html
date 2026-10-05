@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Afterlight: A Survival Story</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=3">
+</head>
+<body>
+  <section class="start-screen" id="startScreen" aria-labelledby="briefingTitle">
+    <div class="start-card">
+      <div class="eyebrow"><span class="pulse"></span> RECOVERED TRANSMISSION // 2094</div>
+      <h2 id="briefingTitle">BEFORE THE ASH</h2>
+      <p id="briefingText">The old world ended in fire, but the radiation kept changing it after the flames went out.</p>
+      <div class="briefing-progress"><span id="briefingProgress"></span></div>
+      <div class="name-field" id="nameField" hidden><label for="survivorName">YOUR NAME</label><input id="survivorName" maxlength="20" placeholder="Enter a name" autocomplete="off"><label class="difficulty-label">STARTING DIFFICULTY</label><div class="difficulty-buttons" id="startingDifficulty"></div><label class="difficulty-label">BACKGROUND</label><div class="difficulty-buttons" id="startingBackground"></div></div>
+      <div id="runActions" hidden style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="start-button" id="continueButton" type="button">CONTINUE RUN</button>
+        <button class="start-button" id="newRunButton" type="button" style="background:linear-gradient(135deg,#ff7b5d,#a8ff60);color:#040b07;">NEW RUN</button>
+      </div>
+      <button class="start-button" id="briefingButton" type="button">NEXT TRANSMISSION</button>
+    </div>
+  </section>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark">A/</span><span>AFTERLIGHT</span></div>
+      <div class="chapter-label">FIELD LOG <span id="chapterNumber">01</span> // DAY <span id="headerDay">01</span></div>
+      <div class="top-actions"><button id="inventoryButton" class="top-button" type="button">INVENTORY</button><button id="matureButton" class="top-button" type="button" aria-pressed="false" title="Enable more detailed non-explicit romance and graphic horror in upcoming scenes">MATURE TEXT: OFF</button><button id="tutorialButton" class="top-button" type="button" aria-haspopup="dialog" aria-controls="tutorialPanel" aria-expanded="false">TUTORIAL</button><button id="soundButton" class="top-button" type="button" aria-pressed="false">SOUND: OFF</button></div>
+    </header>
+
+    <section class="intro-panel" aria-labelledby="gameTitle" style="display:none;">
+      <div class="eyebrow"><span class="pulse"></span> SIGNAL RECOVERED // 2094</div>
+      <p class="lede" id="openingQuote" style="font-size:12px;margin:4px 0;">The wasteland awaits.</p>
+    </section>
+
+    <section class="control-strip" aria-label="Run controls">
+      <div><span id="difficultyLabel" class="status-label">DIFFICULTY</span><div class="difficulty-buttons" id="difficultyButtons"></div></div>
+      <div class="setting-readout"><span class="status-label">CURRENT REGION</span><strong id="regionValue">THE GREENBELT</strong></div>
+      <div class="setting-readout"><span class="status-label">ANOMALY</span><strong id="anomalyValue">LOW</strong></div>
+    </section>
+
+    <section class="status-grid" aria-label="Survival status">
+      <div class="status-card status-card--primary"><span class="status-label">SURVIVAL ODDS</span><strong id="oddsValue">62%</strong><div class="meter"><span id="oddsMeter"></span></div></div>
+      <div class="status-card"><span class="status-label">HEALTH</span><strong id="healthValue">78</strong><span class="status-note">VITALITY</span></div>
+      <div class="status-card"><span class="status-label">RAD EXPOSURE</span><strong id="radiationValue">12</strong><span class="status-note">MUTATION RISK</span></div>
+      <div class="status-card"><span class="status-label">WATER</span><strong id="suppliesValue">3</strong><span class="status-note">WATER RATIONS</span></div>
+      <div class="status-card"><span class="status-label">FOOD</span><strong id="foodValue">6</strong><span class="status-note">MEALS REMAINING</span></div>
+      <div class="status-card"><span class="status-label">LUCK</span><strong id="luckValue">50</strong><span class="status-note">THE WASTES REMEMBER</span></div>
+    </section>
+
+    <aside class="event-banner" id="eventBanner" hidden></aside>
+    <p class="status-message" id="statusMessage">FIELD NOTE // Pick a path. The wasteland is listening.</p>
+    <div class="world-readout" aria-label="World relationships and inventory">
+      <span class="world-entry world-entry--name"><span class="entry-label">NAME</span><strong id="nameValue">SURVIVOR</strong></span>
+      <span class="world-entry world-entry--base"><span class="entry-label">BASE</span><strong id="baseValue">NONE</strong></span>
+      <span class="world-entry world-entry--allies"><span class="entry-label">ALLIES</span><strong id="alliesValue">NONE</strong></span>
+      <span class="world-entry world-entry--lovers"><span class="entry-label">LOVERS</span><strong id="loversValue">NONE</strong></span>
+      <span class="world-entry world-entry--enemies"><span class="entry-label">ENEMIES</span><strong id="enemiesValue">NONE</strong></span>
+      <span class="world-entry world-entry--items"><span class="entry-label">ITEMS</span><strong id="itemsValue">NONE</strong></span>
+      <span class="world-entry world-entry--materials"><span class="entry-label">MATERIALS</span><strong id="materialsValue">0</strong></span>
+      <span class="world-entry world-entry--reputation"><span class="entry-label">REPUTATION</span><strong id="reputationValue">0</strong></span>
+      <span class="world-entry world-entry--morality"><span class="entry-label">MORALITY</span><strong id="moralityValue">HUMAN</strong></span>
+       <span class="world-entry"><span class="entry-label">RACE</span><strong id="raceValue">HUMAN</strong></span>
+       <span class="world-entry"><span class="entry-label">BACKGROUND</span><strong id="backgroundValue">NONE</strong></span>
+       <span class="world-entry"><span class="entry-label">HUMANITY</span><strong id="humanityValue">100</strong></span>
+      <span class="world-entry world-entry--gold"><span class="entry-label">GOLD</span><strong id="crownsValue">25</strong></span>
+    </div>
+    <dialog class="tutorial-panel" id="tutorialPanel" aria-labelledby="tutorialTitle">
+      <div class="tutorial-heading"><span id="tutorialTitle">FIELD MANUAL // HOW TO PLAY</span><button id="closeTutorial" class="close-button" type="button" aria-label="Close tutorial">×</button></div>
+      <p class="tutorial-intro">Your goal is to reach Haven by day 365. Follow Stella?s radio clues, protect your health, and decide who you want to become along the way. Open any section below when you need it. No ending spoilers.</p>
+      <details open>
+        <summary>1. Your first steps</summary>
+        <ol>
+          <li>Read the current scene and the objective above it.</li>
+          <li>Choose an action. Some scenes simply tell you what happens and offer Continue onward.</li>
+          <li>Read the outcome before clicking again. Your decision may change supplies, relationships, or later events.</li>
+          <li>Check your health, food, water, and active base benefit, then continue.</li>
+        </ol>
+        <p>There is no real-time countdown. Take your time reading. Scroll inside the story panel for longer scenes. You can use Tab to move between buttons and Enter or Space to select them.</p>
+      </details>
+      <details>
+        <summary>2. Days, chapters, and difficulty</summary>
+        <p>The journey has exactly 365 daily scenes. Continue advances one day, with no multi-week calendar jumps. Main quests remain ordered, with over 300 shuffled travel encounters between them. Quiet conversations do not charge travel supplies, but still occupy a day.</p>
+        <p>Beginner provides a gentler start. Survivor, Wasteland, and Impossible generally give you fewer reserves, higher water costs, and faster radiation buildup. Difficulty locks when you begin. Restart to choose another.</p>
+        <p><strong>Fatal decisions:</strong> some scenes offer a choice labeled LETHAL RISK. Read the warning in the scene: selecting that option ends the run immediately, even at full health or as an ash revenant. Some death descriptions are graphic. Other choices remain available, and you can restart after a fatal outcome.</p>
+        <p>Reaching Haven resolves the journey on day 365. Your choices determine your companions, relationships, and life there. Health reaching zero can end the run before arrival.</p>
+      </details>
+      <details>
+        <summary>3. Food, water, and staying alive</summary>
+        <p><strong>Health:</strong> injuries and shortages reduce it. Zero means death. Helpful choices and shelter stops can restore it.</p>
+        <p><strong>Food and water:</strong> balances use whole or half-rations, such as 3 or 2.5. A normal human uses 1 food and 0.5 water per travel day, before base benefits. Time-consuming choices also spend water according to difficulty: 1 on Beginner, 2 on Survivor, 3 on Wasteland, and 4 on Impossible.</p>
+        <p>If your food or water is empty when travel needs are checked, each shortage deals 3 health damage per travel day. Both shortages together deal 6 per day. A reward can be smaller than the total cost of the journey.</p>
+        <p>Daily travel offers cautious scavenging, a larger haul with injury risk, or rest and decontamination. Risky searches have a 15%, 25%, 35%, or 45% injury chance from Beginner through Impossible, dealing 10, 15, 20, or 25 health damage before race protection. Rest consumes provisions; it is not a free refill.</p>
+        <p>Shelter chapters normally restore up to 8 health, remove up to 8 radiation, and bring food and water to at least 6 and 7. Base benefits can improve this. These supplies are granted once per shelter scene.</p>
+      </details>
+      <details>
+        <summary>4. Radiation, luck, and stat feedback</summary>
+        <p><strong>Radiation:</strong> rises during travel and some events. At the first 100 exposure, you have a 50% chance of dying and a 50% chance of becoming a mutant. Mutation increases hunger and thirst but keeps your story progress.</p>
+        <p><strong>Luck:</strong> influences changes to survival odds. Choices and events can also change luck itself.</p>
+        <p><strong>Survival odds:</strong> a changing indicator of your situation, not a literal prediction or a separate instant-death roll. Your health is the immediate survival limit.</p>
+        <p>Signed badges beside stats show actual changes: +2, -1, or -0.5. Green means favorable; red means unfavorable. Lower radiation and higher humanity are favorable. Badges and newly gained item names disappear on your next click.</p>
+        <p><strong>Special events:</strong> rare encounters use a thick colored border and a HIGH IMPACT badge. Orange marks a survival crisis, gold a rare opportunity, and violet an arcane phenomenon. Their rewards and injuries are much larger than ordinary encounters. Listed effects come before daily consumption; injury-risk choices can cause additional damage.</p>
+        <p>Some decisions also show an aftermath paragraph explaining new allies, enemies, relationships, or other consequences. The item line lists only newly gained items.</p>
+      </details>
+      <details>
+        <summary>5. Radio messages, clues, and inventory</summary>
+        <p>Stella guides you through written radio transmissions. The radio log keeps the latest message visible; route notes preserve discovered clues. Some messages are unverified. Compare their directions with landmarks and earlier instructions before trusting them.</p>
+        <p>Choosing a route changes the quest you experience. Both main routes can lead to Haven, but the people you help and the risks you take differ.</p>
+        <p>Items record discoveries and rewards. Some choices require specific items and remain disabled without them. When a readout contains several items or people, use its dropdown to inspect the list. Gold and materials are tracked resources; there is no general shop or crafting menu.</p>
+      </details>
+      <details>
+        <summary>6. Bases and their active benefits</summary>
+        <p>Your base is a support network that moves equipment and maintains shelters along the route. Choose one early and change it at the weather station. Only your current base grants benefits; changing bases does not stack them.</p>
+        <ul>
+          <li><strong>Moss Caravan:</strong> +1 food when foraging; shelter food reserves refill to at least 8.</li>
+          <li><strong>Warden Outposts:</strong> travel water use falls by 0.5 per day and radiation gain by 0.25 per day, each to a minimum of zero. Difficulty-based choice costs still apply.</li>
+          <li><strong>Moon Shrines:</strong> shelter recovery gains 6 extra health; food use falls by 0.5 per day, to a minimum of 0.5.</li>
+        </ul>
+        <p>The active benefit is shown beneath the radio message. Choose the network that supports the resources you struggle to keep.</p>
+      </details>
+      <details>
+        <summary>7. Changing race</summary>
+        <p>The moon-pool quest offers a choice. You can remain human; transformation is optional.</p>
+        <ul>
+          <li><strong>Human:</strong> standard survival rules.</li>
+          <li><strong>Moon elf:</strong> radiation gain falls by 0.25 per travel day. This can combine with the Warden benefit, but never creates negative exposure gain.</li>
+          <li><strong>Ash revenant:</strong> direct choice wounds are halved, rounded down; food consumption rises by 0.5 per day. This protection does not halve shortage damage.</li>
+        </ul>
+        <p>Your race and your humanity are separate. Changing your body does not make you cruel. Radiation can still trigger mutation later.</p>
+      </details>
+      <details>
+        <summary>8. Humanity, crimes, and consequences</summary>
+        <p>Humanity starts at 100 and measures compassion, not species. Exploitation, robbery, and harming innocent people can lower it. Not every illegal act has the same moral consequences: who benefits and who suffers matters.</p>
+        <p>New enemies can follow your story through later encounters. Restitution may restore some humanity, but does not automatically remove enemies or repair a broken romance.</p>
+        <p>You may gain supplies from a cruel choice and still face its consequences later. Haven remains a sanctuary, but the people you hurt also have a voice there.</p>
+      </details>
+      <details>
+        <summary>9. Allies, friendship, and romance</summary>
+        <p>Stella, Lyria, and Nyx have distinct relationship paths. Helping someone may build an alliance; friendship and romance require their own choices. Rescue never creates a romantic obligation.</p>
+        <p>Stella?s romance requires both expressed interest and enough trust. Lyria?s choices depend on how you treated her. You can choose friendship, keep your distance, or pursue an available romance.</p>
+        <p>Romance is exclusive in this version. Choosing another partner ends your earlier commitment openly. Other characters can remain friends. Betrayal may break a relationship, and an apology does not guarantee it returns.</p>
+      </details>
+      <details>
+        <summary>10. Controls, progress, and a useful habit</summary>
+        <p><strong>Mature Text:</strong> toggles more detailed non-explicit romantic scenes and graphic horror for upcoming scenes. Off uses shorter descriptions. This setting never changes risk, rewards, or relationship choices.</p>
+        <p><strong>Sound:</strong> toggles background music. Radio messages are text, not voiced audio.</p>
+        <p><strong>Tutorial:</strong> opens this manual without advancing the journey. Close it with ? or Escape to return to the game.</p>
+        <p><strong>Restart Run:</strong> begins again with a new survivor. The game now saves automatically; use CONTINUE RUN on the start screen to resume after reload. Restart confirms before clearing a saved run.</p>
+        <p>Before continuing, ask: Do I have food and water? What is my base helping with? What did this choice change for someone else? The game rewards paying attention to the people as well as the numbers.</p>
+      </details>
+    </dialog>
+    <dialog class="tutorial-panel" id="inventoryPanel" aria-labelledby="inventoryTitle">
+      <div class="tutorial-heading"><span id="inventoryTitle">INVENTORY // GEAR &amp; SUPPLIES</span><button id="closeInventory" class="close-button" type="button" aria-label="Close inventory">×</button></div>
+      <div id="inventoryContent" style="font-size:13px;line-height:1.5;">
+        <div><strong>EQUIPPED</strong></div>
+        <div id="equipSlots" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:6px;margin:8px 0;"></div>
+        <div style="margin-top:8px;"><strong>CARRIED</strong> <span id="invCount"></span></div>
+        <div id="inventoryList" style="max-height:220px;overflow:auto;border:1px solid var(--line);padding:6px;margin:6px 0;background:rgba(5,11,6,.6);"></div>
+        <div id="itemDetail" style="min-height:40px;border-left:2px solid var(--cyan);padding-left:8px;color:#9bd982;"></div>
+      </div>
+    </dialog>
+    <section class="story-panel" id="storyPanel" aria-live="polite">
+      <div class="special-event-badge" id="specialEventBadge" hidden></div>
+      <p class="campaign-context" id="campaignContext"></p>
+      <aside class="radio-log" aria-label="Radio message and route clues">
+        <p id="radioMessage">RADIO // Waiting for a verified signal.</p>
+        <p id="baseBuffValue"></p>
+        <p id="routeClues">ROUTE NOTES // No verified clues yet.</p>
+      </aside>
+      <div class="story-meta"><span id="sceneType" class="scene-type">ENCOUNTER</span><span id="location" class="location-readout">OUTSKIRTS // SECTOR 7</span></div>
+      <h2 id="sceneTitle">A LIGHT IN THE DEAD RAIL YARD</h2>
+      <p id="sceneText">Your cracked radio catches a voice beneath the static. Someone is broadcasting from the old rail yard, offering shelter for anyone who can hear. The yard is two hours east. Between you and the signal: a minefield that nobody has bothered to map since the bombs fell.</p>
+      <div class="story-interlude" id="storyInterlude" hidden></div>
+      <p class="decision-aftermath" id="decisionAftermath" hidden></p>
+      <p class="choice-outcome" id="choiceOutcome" hidden></p>
+      <p class="prompt" id="promptText">What do you do?</p>
+      <div class="choices" id="choices"></div>
+    </section>
+
+    <footer class="footer"><span id="logLine">LOG 01 // MAKE YOUR FIRST CALL</span><div class="footer-actions"><div class="contact-links"><span class="contact-name">EVAN BARTKOWSKI</span><a href="mailto:evan.bartkowski@icloud.com">EMAIL</a><a href="https://www.linkedin.com/in/evan-bartkowski-31274b299/" target="_blank" rel="noreferrer">LINKEDIN</a><a href="https://github.com/evanbartkowski" target="_blank" rel="noreferrer">GITHUB</a></div><button id="restartButton" class="restart-button" type="button">RESTART RUN <span>↻</span></button></div></footer>
+  </main>
+  <audio id="backgroundMusic" preload="auto" aria-hidden="true"></audio>
+  <script src="campaign.js"></script>
+  <script src="expansion.js"></script>
+  <script src="journey.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

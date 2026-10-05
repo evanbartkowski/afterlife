@@ -1,0 +1,1589 @@
+const difficulties = {
+  beginner: { label: 'BEGINNER', odds: 66, health: 88, supplies: 5, food: 7, radiation: 9, radiationDrift: .22, luck: 58, drain: 1, preferredTypes: ['RESOURCE', 'DISCOVERY', 'CROSSROADS'], preferredChains: ['FINCH'], repeatBlocks: 2 },
+  survivor: { label: 'SURVIVOR', odds: 60, health: 82, supplies: 4, food: 6, radiation: 12, radiationDrift: .35, luck: 52, drain: 2, preferredTypes: ['ENCOUNTER', 'RESOURCE', 'DISCOVERY'], preferredChains: ['MARA', 'SABLE'], repeatBlocks: 1 },
+  wasteland: { label: 'WASTELAND', odds: 54, health: 76, supplies: 3, food: 5, radiation: 16, radiationDrift: .5, luck: 47, drain: 3, preferredTypes: ['THREAT', 'MUTATION', 'ARCANE FIND'], preferredChains: ['SABLE', 'FINCH'], repeatBlocks: 2 },
+  impossible: { label: 'IMPOSSIBLE', odds: 48, health: 70, supplies: 3, food: 4, radiation: 20, radiationDrift: .7, luck: 42, drain: 4, preferredTypes: ['THREAT', 'MUTATION', 'BOSS // BIG EVENT', 'BOSS // MUTANT WARLORD'], preferredChains: ['MARA'], repeatBlocks: 3 }
+};
+
+const backgrounds = {
+  soldier: { label: 'SOLDIER', desc: 'Better combat and weapon use.', stats: { health: 10, luck: -2 } },
+  medic: { label: 'MEDIC', desc: 'Healing items and medical events stronger.', stats: { supplies: 1, radiation: -3 } },
+  scavenger: { label: 'SCAVENGER', desc: 'Improved loot and scavenging.', stats: { food: 2, materials: 3 } },
+  engineer: { label: 'ENGINEER', desc: 'Better crafting and tech interactions.', stats: { luck: 5, radiation: -2 } },
+  drifter: { label: 'DRIFTER', desc: 'Higher luck and survival bonuses.', stats: { luck: 8, odds: 5 } },
+  diplomat: { label: 'DIPLOMAT', desc: 'Improved social and negotiation.', stats: { reputation: 4, crowns: 10 } }
+};
+
+const regions = [
+  ['THE GREENBELT', 'LOW'], ['GLASS DESERT', 'ELEVATED'], ['THE SUNKEN CITY', 'HIGH'], ['MOONFALL MARSH', 'CRITICAL'], ['ELVEN RUINS', 'ARCANE'], ['THE BONE ORCHARD', 'FERAL'], ['BLACKSTAR CRATER', 'CATASTROPHIC'], ['HAVEN APPROACH', 'STABLE']
+];
+
+const openingQuotes = [
+  'The dead do not haunt this place. They are the place.', 'Every sunrise is an accusation.', 'The old world left you its ruins. Decide what to leave behind.', 'There are worse things than monsters. Some of them remember what you did.', 'The radio is quiet. That is when it is most dangerous.', 'Hope is a ration. Spend it carefully.', 'The wasteland does not ask who you were. It asks what you will do now.', 'A clean conscience weighs more than a full pack.', 'Some doors open. Some doors bite.', 'The stars still shine, which feels almost rude.', 'If the dead rise, try not to be the most interesting thing in the room.', 'A friend is a resource until they become a reason.', 'The dark learned new tricks after the bombs fell.', 'You can survive anything except the story you tell yourself.', 'The road remembers every body it takes.', 'Magic is radiation with better manners.', 'The sky is cracked. The ground is hungry.', 'Kindness is dangerous. So is cruelty. Choose your danger.', 'A crown is still a target, even when it is made of scrap.', 'The last honest person died yesterday. Probably.', 'If you hear singing underground, do not sing back.', 'No one gets to stay innocent forever.', 'Somewhere beyond the ash, something is waiting for you to become worse.', 'The end of the world is not an ending. It is an invitation.'
+];
+
+const musicTracks = [
+  'music/welbornworks-welcome-to-the-badlands-377489.mp3',
+  'music/tim_kulig_free_music-desolate-wasteland-182717.mp3',
+  'music/back_drop-dark-piano-ambient-background-music-wasteland-275331.mp3',
+  'music/astrofreq-ethereal-wasteland-music-4-3569.mp3',
+  'music/aberrantrealities-fossilized-wasteland-572842.mp3'
+];
+
+let sfxContext;
+function playSFX(type = 'click') {
+  try {
+    if (!sfxContext) sfxContext = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = sfxContext.createOscillator();
+    const gain = sfxContext.createGain();
+    const filter = sfxContext.createBiquadFilter();
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(sfxContext.destination);
+    gain.gain.value = 0.08;
+    filter.type = 'lowpass';
+    filter.frequency.value = 1200;
+    if (type === 'click') {
+      osc.type = 'square';
+      osc.frequency.value = 650;
+      osc.start();
+      setTimeout(() => {
+        gain.gain.linearRampToValueAtTime(0.0001, sfxContext.currentTime + 0.06);
+        osc.stop(sfxContext.currentTime + 0.08);
+      }, 5);
+    } else if (type === 'choice') {
+      osc.type = 'sawtooth';
+      osc.frequency.value = 420;
+      gain.gain.value = 0.06;
+      osc.start();
+      setTimeout(() => {
+        gain.gain.linearRampToValueAtTime(0.0001, sfxContext.currentTime + 0.12);
+        osc.stop(sfxContext.currentTime + 0.15);
+      }, 5);
+    } else if (type === 'success') {
+      osc.type = 'sine';
+      osc.frequency.value = 880;
+      osc.start();
+      setTimeout(() => { osc.frequency.value = 1100; }, 40);
+      setTimeout(() => {
+        gain.gain.linearRampToValueAtTime(0.0001, sfxContext.currentTime + 0.2);
+        osc.stop(sfxContext.currentTime + 0.25);
+      }, 5);
+    } else if (type === 'danger') {
+      osc.type = 'sawtooth';
+      osc.frequency.value = 180;
+      gain.gain.value = 0.1;
+      osc.start();
+      setTimeout(() => {
+        gain.gain.linearRampToValueAtTime(0.0001, sfxContext.currentTime + 0.25);
+        osc.stop(sfxContext.currentTime + 0.3);
+      }, 5);
+    }
+  } catch (e) {}
+}
+
+const introScenes = [
+  { type: 'SURVIVAL 01', title: 'FIND WATER', text: 'Your throat is dust. The first lesson of the wastes is not heroic: drink before you dream.', choices: [
+    ['Follow the old pipe markers', 4, 0, 1, 0, 'The pipe is cracked, but condensation gathers beneath it. You fill one bottle.'],
+    ['Search the abandoned kitchen', 1, -1, 2, 0, 'You find a half-full tin behind the stove. It tastes like metal and victory.'],
+    ['Keep walking and save the time', -4, 0, -2, 1, 'You walk until your vision narrows. The road does not care that you were trying to be efficient.']
+  ] },
+  { type: 'SURVIVAL 02', title: 'MAKE A FIRE', text: 'Night arrives early beneath the ash cloud. You have one match, a torn blanket, and a long way to go.', choices: [
+    ['Burn the blanket and stay warm', 3, 0, 3, 0, 'The fire burns blue. Something watches from the treeline, but it stays back.'],
+    ['Save the match and sleep cold', 0, 0, -2, 0, 'You wake shivering, alive, and already learning what caution costs.'],
+    ['Signal with the match', 5, 0, 0, 2, 'A distant light answers yours. It disappears before you can decide whether that is good.']
+  ] },
+  { type: 'FIRST DECISION', title: 'CHOOSE A PLACE TO STAND', text: 'You cannot carry everything. Choose a base of operations before the road teaches you harder lessons. A base gives you a different kind of future.', choices: [
+    ['Claim the old ranger station', 6, -1, 4, 0, 'The station has a roof, a radio mast, and a locked cabinet. You make it yours.', { base: 'RANGER STATION', item: 'RADIO PARTS', materials: 2 }],
+    ['Build a camp in the Greenbelt', 3, 0, 1, 0, 'The trees hide your smoke. It is not much, but it is somewhere to return to.', { base: 'GREENBELT CAMP', item: 'FORAGING KIT', materials: 3 }],
+    ['Take over the old trading post', 1, -1, 2, 2, 'The counters are dusty and the back room is trapped. You clear it one careful step at a time.', { base: 'TRADING POST', item: 'TRADE TOKENS', materials: 4, reputation: 2 }]
+  ] }
+];
+
+const difficultyScenes = {
+  beginner: [{ type: 'BEGINNER // SAFE HARBOR', title: 'THE FIRST FRIENDLY LIGHT', text: 'A settlement beacon blinks through the rain. The gatekeeper offers directions, a warm meal, and one small warning: do not mention the old tower.', choices: [
+    ['Accept the directions and rest', 6, 1, 2, 0, 'You sleep beneath a clean roof and leave with a hand-drawn map.'],
+    ['Trade a ration for local news', 4, 0, 1, 0, 'The gatekeeper tells you which roads are watched and which are merely haunted.'],
+    ['Ask about the old tower', -2, 0, 0, 2, 'The beacon goes dark. Whatever you asked about, someone wanted it forgotten.']
+  ] }],
+  survivor: [{ type: 'SURVIVOR // HARD CHOICE', title: 'THE WATER LEDGER', text: 'A settlement clerk has been falsifying water records. Exposing the fraud may save a hundred people, but it will collapse the fragile trust holding the town together.', choices: [
+    ['Expose the ledger in public', 7, -1, 1, 0, 'The town erupts, then counts every remaining bottle in the open. Trust hurts before it heals.'],
+    ['Confront the clerk privately', 3, 0, 2, 1, 'The clerk gives you the missing pages and asks for one chance to repair the damage.'],
+    ['Keep the secret for a favor', -5, 1, 0, 2, 'The records stay clean on paper. The debt now has your name attached to it.']
+  ] }],
+  wasteland: [{ type: 'WASTELAND // HUNT', title: 'THE RED TRACKER', text: 'Something has followed your trail for three days. At dusk, you find its red footprints circling your camp and a message scratched into the dust: RUN FASTER.', choices: [
+    ['Lay a trap in the dark', 8, -1, 2, 5, 'The trap snaps shut on empty air. Behind you, the red tracks begin again.'],
+    ['Follow the tracks into the ruins', -4, -1, 5, 8, 'You find a nest of stolen packs and the tracker waiting beside them, almost human.'],
+    ['Burn your camp and vanish', 2, -2, 1, 3, 'Smoke erases your trail. Something screams from the far side of the flames.']
+  ] }],
+  impossible: [{ type: 'IMPOSSIBLE // LAST CHANCE', title: 'THE BLACK SUN TRIAL', text: 'The crater opens beneath your feet. A voice offers one clean escape route, but only if you surrender the person you have become to the dark below.', choices: [
+    ['Descend and face the voice', 12, -2, -8, 12, 'The crater closes behind you. When you return, the sky has learned your shape.'],
+    ['Offer your best memory', 7, 0, 2, 15, 'The voice accepts. You survive, but the memory is gone before you can say goodbye.'],
+    ['Run across the collapsing rim', -10, -1, -15, 10, 'The rim gives way. You reach the far side with one boot and most of your certainty missing.']
+  ] }]
+};
+
+const mutantScenes = [
+  { type: 'MUTANT QUEST', title: 'THE HUNGER UNDER YOUR SKIN', text: 'The mutation gives you strength, but it has also given you a new hunger. A den beneath the road offers a choice: feed the change or fight it.', choices: [
+    ['Follow the scent into the den', 5, -1, 5, 3, 'The den is full of glowing roots. You eat one and feel the hunger quiet for now.', { race: 'MUTANT', item: 'GLOWROOT', radiation: 4 }],
+    ['Resist and leave the den', 2, 0, -2, 0, 'You leave shaking, but your mind remains your own for another day.'],
+    ['Claim the den as a mutant refuge', -3, 1, 3, 6, 'The creatures inside recognize what you are becoming and let you pass without a fight.', { base: 'MUTANT DEN', reputation: -2 }]
+  ] },
+  { type: 'MUTANT QUEST', title: 'THE ONES WHO CAN HEAR THE RADSTORM', text: 'Other mutants gather beneath a dead radio tower. They can hear the next radiation wave before it arrives, but they demand that you lead their dangerous crossing.', choices: [
+    ['Lead them through the storm', 8, -1, 4, 8, 'The storm bends around your altered body. The others follow your signal through the white fire.', { item: 'RADSTORM SENSE', radiation: -8, reputation: 3 }],
+    ['Take their warning and go alone', 4, 0, 1, 2, 'You leave with the route memorized and the knowledge that someone else will face the storm.'],
+    ['Warn the settlement instead', 6, -1, 2, 4, 'Haven prepares for the wave. They thank you carefully, as if gratitude might be contagious.', { reputation: 5 }]
+  ] }
+];
+
+const lateRaceScene = { type: 'LATE GAME // RACE SHIFT', title: 'THE VEIL OPENS', text: 'After enough years beneath the altered sky, your body offers a choice. Become something the old world would have called impossible. The gift may save you. It may also erase the person who started this journey.', lateOnly: true, choices: [
+  ['Remain human and keep your memories', 4, 0, 3, 0, 'Your bones ache, but your name stays yours.', { race: 'HUMAN', reputation: 2 }],
+  ['Become an irradiated elf', 10, 1, 5, 10, 'Your ears sharpen to the radio’s hidden choir. You heal quickly, but sunlight now feels like a verdict.', { race: 'IRRADIATED ELF', item: 'STAR-SIGHT', radiation: 3, reputation: -1 }],
+  ['Become a mutant revenant', 14, 2, 12, 20, 'You stop breathing for a moment. When you start again, the dead recognize you as kin.', { race: 'MUTANT REVENANT', evil: 3, item: 'DEATH-SENSE', reputation: -6 }]
+] };
+
+const scenarios = [
+  { type: 'ENCOUNTER', title: 'A LIGHT IN THE DEAD RAIL YARD', text: 'Your cracked radio catches a voice beneath the static. Someone is broadcasting from the old rail yard, offering shelter. Between you and the signal: a minefield nobody has mapped since the bombs fell.', choices: [
+    ['Follow the signal through the minefield', 8, -1, 0, 3, 'The signal leads you through the dead zone. One wrong step, then silence. You arrive shaken, but alive.'],
+    ['Circle wide and lose a day of travel', 3, -1, 2, 0, 'You move slowly around the field. The long way costs water, but every step is solid ground.'],
+    ['Answer the broadcast and ask for directions', -5, 0, 0, 4, 'The voice goes quiet. A minute later, a flare blooms on the safe path. Someone out there is watching.']
+  ] },
+  { type: 'DISCOVERY', title: 'THE TIN CANARY', text: 'A shelter belongs to a woman with a shock baton and a three-eyed dog. She has one clean canteen left. Her eyes keep returning to your pack.', choices: [
+    ['Offer half your remaining water', 10, -1, 4, 1, 'The canteen passes between you. The dog stops growling. The woman opens the shelter door.'],
+    ['Tell her you have nothing to trade', -2, 0, -1, 0, 'Honesty lands harder than a good lie. She lets you inside, but keeps the baton close.'],
+    ['Show her the glowing med-kit in your pack', 6, 0, 2, 2, 'The kit hums with old radiation. Her suspicion breaks, and you gain a careful ally.']
+  ] },
+  { type: 'THREAT', title: 'MOVEMENT IN THE WHITE', text: 'At midnight, shapes move across the salt flats. Not raiders. Too low to the ground. Whatever is out there has already found the edge of your floodlight.', choices: [
+    ['Wake everyone and kill the light', 7, 0, 3, 0, 'The shelter falls dark. The shapes pass without finding a target. Nobody sleeps again.'],
+    ['Take the floodlight and investigate alone', -12, 0, -20, 0, 'An ash-mouse bites through your glove. Its teeth leave a silver glow under your skin.'],
+    ['Wait and watch from the roof', 2, 0, 0, 1, 'The movement fades at dawn. You learn nothing, but keep everyone safe.']
+  ] },
+  { type: 'ARCANE FIND', title: 'THE WITCHLIGHT WELL', text: 'A green flame dances above an old well. A voice inside offers a bargain: one memory for a cup of water. The voice knows your name.', choices: [
+    ['Drink the witchlight water', 5, 2, -7, 0, 'The water tastes like lightning. Your thirst breaks, and a second shadow follows you out.'],
+    ['Trade a memory you can spare', 4, 1, 0, 3, 'You forget the face of your childhood home. The water is clean. The voice says thank you.'],
+    ['Smash the lantern and run', -3, 0, 4, 2, 'The green flame bursts into moths. One settles on your shoulder like a badge.']
+  ] },
+  { type: 'RESOURCE', title: 'THE LAST CLEAN TANK', text: 'A dead wind farm hides a water tank marked CLEAN. A hand-painted warning says the pump is unstable. The tank could be salvation, or a quiet grave.', choices: [
+    ['Open the tank and filter what you can', 9, 2, -4, 1, 'The pump screams, then gives. Clean water fills every bottle. Luck is a kind of engineering.'],
+    ['Take one bottle and move on', 1, 1, 0, 0, 'You keep the risk small. One bottle is better than none.'],
+    ['Leave it. The warning is enough', -4, 0, 0, 2, 'You walk away thirsty. Sometimes caution is just fear wearing a uniform.']
+  ] },
+  { type: 'MUTATION', title: 'THE CRYSTAL STAG', text: 'A stag made of bone and amber steps from the irradiated pines. Its antlers are full of tiny stars. It bows, as if waiting for a command.', choices: [
+    ['Follow the stag into the trees', 8, -1, 7, 4, 'It leads you to a hidden spring. By morning it is gone, leaving one amber antler behind.'],
+    ['Offer it your last ration', 5, -1, 2, 8, 'The stag drinks. Your luck turns strange and bright for the rest of the day.'],
+    ['Raise your weapon', -10, 0, -12, -3, 'The creature vanishes. Something in the forest remembers your fear.']
+  ] },
+  { type: 'CROSSROADS', title: 'THE CITY BELOW', text: 'A road sign points to Haven, a settlement beneath the old city. The underpass is dark, but a red lantern hangs at its far end. Behind you, an ash storm rises.', choices: [
+    ['Enter the underpass before the storm', 8, -1, 1, 0, 'The tunnel swallows you. Something scratches in the dark, but the red lantern stays ahead.'],
+    ['Climb for the ridge and wait out the storm', -8, -1, -8, 0, 'The wind strips the road bare. You survive the night, but the storm takes your reserve.'],
+    ['Follow the lantern, calling out first', 4, 0, 3, 2, 'A voice answers from the dark: “You made it farther than most.” The gate unlocks.']
+  ] },
+  { type: 'RAIDER RADIO', title: 'THE VOICE THAT ISN’T THERE', text: 'Your radio repeats a message in your own voice: “Turn around.” The signal points toward a ruined observatory where the sky is glowing violet.', choices: [
+    ['Trust the impossible signal', 6, -1, 3, 4, 'The observatory is empty except for a map of the safest route, drawn in your handwriting.'],
+    ['Turn the radio off and keep moving', 0, 0, 0, 0, 'The silence is worse. You make good time, but the violet glow follows on the horizon.'],
+    ['Answer yourself', -4, 0, -3, 5, 'Something answers back. Your radio works perfectly now, and that is not comforting.']
+  ] },
+  { type: 'HAVEN GATE', title: 'A PLACE THAT REMEMBERS', text: 'The gate opens onto garden lights, patched roofs, and people who still know how to laugh. The world is not fixed. It is not safe. But you have carried yourself here.', choices: [
+    ['Bring your map for the next traveler', 5, 0, 5, 2, 'You mark the mines, water, and radio paths. Your survival becomes someone else’s chance.'],
+    ['Bring your story so the dead are remembered', 2, 0, 4, 5, 'The room grows quiet, then someone sets another place at the table.'],
+    ['Bring nothing but a full cup', 0, 0, 1, 1, 'You sit down. For the first time in years, the next choice can wait until morning.']
+  ] }
+];
+
+const bonusScenarios = [
+  { type: 'QUEST // CHAIN 01', title: 'THE GIRL WITH THE SILVER MASK', text: 'Mara is cornered by mutant jackals beneath a billboard. She offers a map to the Elven Ruins if you get her out alive. Her hand stays on your holster.', chain: 'MARA', choices: [
+    ['Save Mara and share your water', 8, -1, 2, 0, 'Mara joins your camp. She sleeps with one eye open and starts calling you by a name you never gave her.', { ally: 'MARA', item: 'SILVER MAP' }],
+    ['Steal her map and leave her to the jackals', 3, 0, -4, 0, 'You take the map. Behind you, Mara screams once. The map is accurate. Your reflection is not.', { item: 'STOLEN SILVER MAP', sin: 'THEFT', reputation: -4, enemy: 'MARA' }],
+    ['Kill the jackals, then ask Mara to travel with you', 10, 0, 1, 2, 'Mara follows. Not because she trusts you, but because she wants to see what you become.', { ally: 'MARA', enemy: 'JACKAL PACK' }]
+  ] },
+  { type: 'QUEST // CHAIN 01', title: 'MARA’S LAST LANTERN', text: 'Mara leads you to the Elven Ruins. An irradiated elf prince holds the map’s missing half. He will trade it for the lantern that keeps Mara’s shadow from moving on its own.', chain: 'MARA', choices: [
+    ['Give the lantern to the elf prince', 6, 0, -2, 5, 'The prince returns the missing map and bows to Mara. Her shadow finally matches her feet.', { item: 'ELVEN MAP HALF', ally: 'ELF PRINCE', reputation: 3, requires: ['SILVER MAP'] }],
+    ['Keep the lantern and lie to Mara', -4, 0, 0, 0, 'Mara hears the lie in your breathing. She leaves at dawn with half your ammunition.', { enemy: 'MARA', sin: 'BETRAYAL', item: 'SHADOW LANTERN', reputation: -5 }],
+    ['Burn the lantern and free the shadow', 7, -1, 4, 8, 'The shadow becomes a dark-winged creature and flies north. Mara laughs for the first time.', { ally: 'MARA', item: 'SHADOW FEATHER', evil: 1 }]
+  ] },
+  { type: 'BOSS // BIG EVENT', title: 'THE NECROMANCER OF SUBLEVEL NINE', text: 'A bell rings beneath the Sunken City. Zombies climb through the subway vents behind a robed mutant who wears a crown of surgical steel. He offers you a place at his side.', boss: true, choices: [
+    ['Challenge the necromancer and kill the crown', 7, -1, -9, 5, 'The crown cracks. The zombies collapse like puppets with cut strings. The city goes quiet.', { item: 'CROWN OF NINE', reputation: 8, enemy: 'NECROMANCER', sin: 'KILLING' }],
+    ['Swear loyalty and become his executioner', 12, 1, 6, 12, 'He gives you a black blade and a command. You win every fight after this. You stop recognizing why.', { item: 'BLACK BLADE', evil: 4, reputation: -8, enemy: 'HAVEN' }],
+    ['Open the floodgates and drown the dead', 3, -2, -3, 0, 'The tunnels fill. The dead go under, and so does the last clean water in the city.', { reputation: 2, sin: 'SACRIFICE', item: 'CITY KEY' }]
+  ] },
+  { type: 'ENCOUNTER // COMPANION', title: 'THE ELF WHO HATED MOONLIGHT', text: 'An elf scout named Vey stands on a watchtower, bleeding silver. He says the Moonfall Marsh is breeding mutant enemies that can smell guilt. He asks whether you are kind.', choices: [
+    ['Tell the truth: kindness is expensive', 5, -1, 3, 1, 'Vey smiles. “Good. I can work with expensive.” He joins your party and teaches you the marsh paths.', { ally: 'VEY', item: 'MARSH COMPASS', reputation: 2 }],
+    ['Flirt, promise safety, and make a lover of him', 7, -1, 4, 2, 'Vey takes your hand beneath the broken moon. The tenderness feels dangerous. That is why it feels real.', { lover: 'VEY', luck: 8, reputation: 3 }],
+    ['Rob his supplies while he is wounded', -5, 2, -5, 0, 'You take his medicine. He survives, but the elf clans add your face to their hunt list.', { enemy: 'ELF CLANS', sin: 'STEALING', reputation: -7, item: 'ELF MEDICINE' }]
+  ] },
+  { type: 'BOSS // MUTANT WARLORD', title: 'THE MOUTHS IN THE WALL', text: 'At Blackstar Crater, a mutant warlord has fused with the crater wall. A hundred mouths chant your private sins. Behind him, a vault pulses with pre-war supplies.', boss: true, choices: [
+    ['Lead your friends into the assault', 9, -2, -14, 4, 'Mara, Vey, and whoever still trusts you bring the wall down together. The vault opens.', { item: 'STAR-IRON ARMOR', reputation: 9, friend: 'THE CRATER CREW' }],
+    ['Offer the warlord your worst sin', -2, 0, 0, 10, 'The mouths swallow your confession. The wall lets you pass, but now it knows what to whisper.', { item: 'BLACKSTAR RELIC', sin: 'CONFESSION', radiation: 6 }],
+    ['Take the vault while everyone fights', 4, 3, -2, 0, 'You steal the supplies and vanish. You are richer. The people who followed you are not.', { item: 'VAULT CACHE', sin: 'BETRAYAL', evil: 2, enemy: 'CRATER CREW' }]
+  ] },
+  { type: 'QUEST // CHAIN 02', title: 'THE BROKEN WEATHER MACHINE', text: 'A weather machine is broadcasting a distress code from the Glass Desert. The voice belongs to Dr. Sable, who claims she can predict the next ashfall if you bring her a working crystal.', chain: 'SABLE', choices: [
+    ['Search the wreckage for a crystal core', 5, -1, 0, 2, 'You pull a blue crystal from the machine. It hums in time with your pulse.', { item: 'BLUE CRYSTAL', ally: 'DR. SABLE' }],
+    ['Leave the machine and follow the storm', -2, 0, -2, 3, 'The storm catches you in the open. Dr. Sable’s voice keeps repeating your name until the radio dies.', { enemy: 'DR. SABLE' }],
+    ['Strip the machine for useful materials', 2, 1, -1, 1, 'You take copper, wire, and one dangerous-looking lens. The forecast is lost, but your base grows stronger.', { item: 'WEATHER LENS', materials: 3, sin: 'SALVAGE' }]
+  ] },
+  { type: 'QUEST // CHAIN 02', title: 'THE FORECAST OF BONES', text: 'Dr. Sable’s weather machine wakes for six seconds. It shows Haven buried under a black snow that has not fallen yet. She asks whether you want the warning shared.', chain: 'SABLE', choices: [
+    ['Give Sable the Blue Crystal', 8, 0, 2, 1, 'The machine sings. Every settlement receives three days of warning, and Sable becomes a trusted voice in your radio.', { requires: ['BLUE CRYSTAL'], item: 'STORM FORECAST', reputation: 7, ally: 'DR. SABLE' }],
+    ['Sell the forecast to the highest bidder', 5, 2, 0, 0, 'The rich settlements pay in ammunition. The poor ones learn about the storm when it arrives.', { requires: ['BLUE CRYSTAL'], item: 'ASHFALL CONTRACT', reputation: -6, sin: 'PROFITEERING' }],
+    ['Destroy the machine before anyone can use it', -4, 0, 3, 0, 'You smash the screen. No one can panic over a future they cannot see.', { enemy: 'DR. SABLE', sin: 'SILENCING', reputation: -3 }]
+  ] },
+  { type: 'QUEST // CHAIN 03', title: 'THE CHILDREN OF THE FLOOD TUNNEL', text: 'A group of young tunnel-dwellers has been stealing rations from your base. Their leader, Finch, says the water beneath their home has turned black.', chain: 'FINCH', choices: [
+    ['Bring them a purifier from your base', 6, -1, 2, 0, 'The black water clears. Finch gives you a hand-drawn map of the tunnels and promises to watch your back.', { requires: ['RADIO PARTS', 'FORAGING KIT'], ally: 'FINCH', item: 'TUNNEL MAP', reputation: 5 }],
+    ['Set a trap and catch the thieves', 1, 0, -1, 2, 'You catch Finch with a sack of your food. He tells you why before you decide what punishment looks like.', { enemy: 'FINCH', sin: 'PUNISHMENT', reputation: -2 }],
+    ['Trade them your old water route', 4, -1, 1, 1, 'The children vanish into the dark with your map. In return, you get a promise and a strange brass key.', { item: 'BRASS TUNNEL KEY', reputation: 2 }]
+  ] },
+  { type: 'QUEST // CHAIN 03', title: 'THE BLACK WATER ANSWERS', text: 'Finch’s tunnel map ends at a sealed door beneath your own base. Something on the other side knows your name and taps three times whenever you lie.', chain: 'FINCH', choices: [
+    ['Use the Brass Tunnel Key', 7, 0, -2, 5, 'The door opens onto an underground spring. The water is dark, but clean. Finch asks you not to tell Haven.', { requires: ['BRASS TUNNEL KEY'], item: 'BLACK SPRING WATER', supplies: 3, reputation: -1 }],
+    ['Seal the door forever', 3, 0, 2, 0, 'The tapping stops. Finch is angry, but the base sleeps more easily.', { enemy: 'FINCH', materials: 2, reputation: -2 }],
+    ['Tell Haven about the spring', 5, 0, 0, 3, 'Haven sends a team. The spring saves hundreds, and your base becomes a crossroads.', { reputation: 8, ally: 'HAVEN COUNCIL' }]
+  ] }
+];
+
+const eventScenes = [
+  { type: 'EVENT // NO CHOICE', title: 'THE SKY OPENS', text: 'For twelve minutes, the clouds part. Old satellites blink awake above the wastes, and every radio in the region repeats a lullaby nobody remembers writing.', effects: { luck: 4, radiation: 2 }, event: true },
+  { type: 'EVENT // NO CHOICE', title: 'A BODY IN THE ROAD', text: 'You find a stranger’s boots, a broken canteen, and a note addressed to someone named home. You take the canteen. You leave the note.', effects: { supplies: 1, reputation: 1 }, event: true },
+  { type: 'EVENT // NO CHOICE', title: 'THE DEAD WALK PAST', text: 'A line of zombies crosses the road at dawn. They do not look at you. One carries a lantern. By nightfall, the lantern is hanging from your base gate.', effects: { odds: 3, radiation: 1 }, event: true },
+  { type: 'EVENT // NO CHOICE', title: 'THE BASE REMEMBERS', text: 'Something has repaired one wall while you were away. The work is too neat for human hands. Your materials increase, but so does the feeling of being watched.', effects: { materials: 2, luck: -2 }, event: true },
+  { type: 'EVENT // NO CHOICE', title: 'A NAME ON THE RADIO', text: 'A stranger says your name over the radio, then apologizes for waking you. The signal is gone before you can answer.', effects: { odds: -2, luck: 3 }, event: true }
+];
+
+const events = [
+  ['RANDOM EVENT // RADSTORM', 'A violet storm rolls over the horizon. The sky rains warm sparks.', -5, 0, 1],
+  ['RANDOM EVENT // LUCKY FIND', 'A sealed ration tin tumbles from a collapsed kiosk. The label says: NOT FOR HUMANS.', 0, 1, 3],
+  ['RANDOM EVENT // FAERIE SWARM', 'Tiny glowing faeries orbit your pack. They steal a button and leave a silver coin.', 2, 0, 5],
+  ['RANDOM EVENT // OLD WORLD HUM', 'A buried machine wakes under your boots. Your bones vibrate with forgotten electricity.', -2, 0, -2],
+  ['RANDOM EVENT // TRAVELER', 'A masked traveler offers a trade: your compass for a charm that points to danger.', 1, 0, 2]
+];
+
+const npcCatalog = [
+  { id: 'stella', name: 'Stella', adult: true, alive: true, role: 'Haven rescue radio operator', faction: 'Haven', preferences: { marriage: 'honesty and freely chosen commitment', boundaries: 'Rescue never creates a romantic obligation.' }, relationship: {} },
+  { id: 'mara', name: 'Mara', adult: true, alive: true, role: 'Scout', faction: 'Rangers', jealousy: 22, preferences: { marriage: 'commitment and honesty', boundaries: 'No public scenes, no hidden debts.' }, relationship: {} },
+  { id: 'vey', name: 'Vey', adult: true, alive: true, role: 'Elf scout', faction: 'Haven', jealousy: 18, preferences: { marriage: 'shared purpose', boundaries: 'No lies about obligations.' }, relationship: {} },
+  { id: 'sable', name: 'Dr. Sable', adult: true, alive: true, role: 'Weather engineer', faction: 'Apex Labs', jealousy: 12, preferences: { marriage: 'mutual respect and ambition', boundaries: 'No emotional manipulation.' }, relationship: {} },
+  { id: 'finch', name: 'Finch', adult: true, alive: true, role: 'Tunnel guide', faction: 'Surface migrants', jealousy: 24, preferences: { marriage: 'practical partnership', boundaries: 'No threats in private.' }, relationship: {} },
+  { id: 'rhea', name: 'Rhea', adult: true, alive: true, role: 'Broker', faction: 'Haven trade', jealousy: 30, preferences: { marriage: 'security and loyalty', boundaries: 'No deception in money matters.' }, relationship: {} },
+  { id: 'oric', name: 'Oric', adult: true, alive: true, role: 'Militia captain', faction: 'Cinder Guard', jealousy: 28, preferences: { marriage: 'public vows and loyalty', boundaries: 'No secret alliances.' }, relationship: {} }
+];
+
+const cultCatalog = [
+  { name: 'The Ember Choir', leader: 'Ashen Vell', beliefs: 'Technology and the sun are sacred sources of justice.', followers: 90, territory: 'Old relay towers', resources: 'Fuel cells and relic tech', enemies: ['Haven Council'], secrets: ['Hidden generator vault'] },
+  { name: 'The Pale Tide', leader: 'Mother Sere', beliefs: 'Mutation is divine purification.', followers: 140, territory: 'Moonfall Marsh', resources: 'Mutant recruits and toxin harvest', enemies: ['Settlers'], secrets: ['Saw a child become a martyr'] },
+  { name: 'The Lantern Prophets', leader: 'Brother Ilya', beliefs: 'The apocalypse was a warning from a sleeping machine god.', followers: 65, territory: 'Sunken transit tunnels', resources: 'Old automation and maps', enemies: ['Criminal organizations'], secrets: ['One prophet is a secret mole'] }
+];
+
+const militiaCatalog = [
+  { name: 'Cinder Guard', leader: 'Oric', troops: 120, equipment: 'Carbines and field shields', morale: 74, loyalty: 66, funding: 140, territory: 'Greenbelt outskirts' },
+  { name: 'Lantern Ward', leader: 'Mara', troops: 80, equipment: 'Runic rifles and rail spikes', morale: 82, loyalty: 78, funding: 95, territory: 'Rail yard checkpoint' }
+];
+
+const weaponCatalog = [
+  { name: 'Runic Rifle', category: 'rifle', damage: 22, rarity: 'Rare', value: 180, description: 'A heavy rifle forged with ash-runed steel.', special: 'Siphons heat from the barrel to reduce recoil.' },
+  { name: 'Crystal Pistol', category: 'pistol', damage: 14, rarity: 'Uncommon', value: 120, description: 'A compact sidearm powered by a shard of blue crystal.', special: 'Shocks the target on a clean hit.' },
+  { name: 'Arc Cannon', category: 'heavy', damage: 30, rarity: 'Epic', value: 360, description: 'A brutal anti-armor weapon that hums with stormglass charge.', special: 'Chains arc damage over a short burst.' },
+  { name: 'Lightning Spear', category: 'melee', damage: 18, rarity: 'Rare', value: 150, description: 'A thrown spear that crackles with static before impact.', special: 'Stuns targets briefly.' },
+  { name: 'Void Blade', category: 'melee', damage: 21, rarity: 'Epic', value: 260, description: 'A blackened blade that absorbs the light around it.', special: 'Adds a brief fear effect against weaker foes.' }
+];
+
+const itemDatabase = {
+  'RUSTED REVOLVER': { name: 'Rusted Revolver', type: 'weapon', slot: 'weapon', rarity: 'Common', value: 25, desc: 'Old but reliable sidearm. +combat effectiveness, small risky-scavenging bonus.', effects: { combat: 3, riskBonus: 1 } },
+  'REINFORCED WASTELAND COAT': { name: 'Reinforced Wasteland Coat', type: 'armor', slot: 'armor', rarity: 'Uncommon', value: 45, desc: 'Reduces injury damage from searches and threats.', effects: { injuryResist: 4 } },
+  'MOONSEED CHARM': { name: 'Moonseed Charm', type: 'artifact', slot: 'artifact', rarity: 'Rare', value: 80, desc: 'Reduces radiation gain. May unlock special encounters.', effects: { radiation: -0.1 } },
+  'SIGNAL SCANNER': { name: 'Signal Scanner', type: 'tool', slot: 'tool', rarity: 'Uncommon', value: 55, desc: 'Improves radio/event discovery chance.', effects: { discovery: 2 } },
+  'MAKESHIFT BACKPACK': { name: 'Makeshift Backpack', type: 'backpack', slot: 'backpack', rarity: 'Common', value: 20, desc: 'Increases carry capacity slightly.', effects: { carry: 1 } },
+  'MEDIC COMPANION KIT': { name: 'Medic Companion Kit', type: 'companion', slot: 'companion', rarity: 'Rare', value: 90, desc: 'Small healing over time in shelters.', effects: { heal: 2 } },
+  // legacy string items stay usable
+  'DAMAGED RADIO': { name: 'Damaged Radio', type: 'tool', rarity: 'Common', value: 5, desc: 'Your link to Stella. Keep it safe.' },
+  'WORKING RADIO': { name: 'Working Radio', type: 'tool', rarity: 'Uncommon', value: 15, desc: 'Reliable contact with Haven.' },
+  'MOONSEED CHARM': { name: 'Moonseed Charm', type: 'artifact', rarity: 'Rare', value: 80, desc: 'Reduces daily radiation.' },
+  'SILVER FRUIT': { name: 'Silver Fruit', type: 'consumable', rarity: 'Rare', value: 30, desc: 'Restores food and a little luck.' }
+};
+
+const relationshipDefaults = () => ({ friendship: 0, attraction: 0, romance: 0, love: 0, loyalty: 0, trust: 0, jealousy: 0, suspicion: 0, respect: 0, resentment: 0, status: 'known', affair: false, married: false, secret: false, partner: null, lastScene: null });
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function defaultState() {
+  return {
+    story: { seen: [], clues: [] },
+    runEnded: false,
+    matureContent: false,
+    difficulty: 'survivor',
+    scenario: 0,
+    odds: 60,
+    day: 1,
+    health: 82,
+    radiation: 12,
+    supplies: 4,
+    food: 6,
+    mutationResolved: false,
+    mutationActive: false,
+    luck: 52,
+    region: 0,
+    lastEvent: false,
+    eventCooldown: 3,
+    route: createRoute('survivor'),
+    previousStats: null,
+    audio: null,
+    allies: [],
+    lovers: [],
+    enemies: [],
+    items: [],
+    sins: [],
+    reputation: 0,
+    evil: 0,
+    base: 'NONE',
+    materials: 0,
+    race: 'HUMAN',
+    playerName: 'SURVIVOR',
+    started: false,
+    crowns: 25,
+    relationshipMap: {},
+    marriages: [],
+    spouses: [],
+    affairs: [],
+    scandals: [],
+    secrets: [],
+    npcRegistry: npcCatalog.map((npc) => ({ ...npc, relationship: relationshipDefaults() })),
+    deadNPCs: [],
+    reputations: { settlers: 0, merchants: 0, criminals: 0, military: 0, religious: 0, political: 0 },
+    gamblingHistory: [],
+    eventHistory: [],
+    factionRelationships: {},
+    cults: [...cultCatalog],
+    militias: [...militiaCatalog],
+    weapons: [...weaponCatalog],
+    inventory: [],
+    equipment: { weapon: null, armor: null, backpack: null, tool: null, artifact: null, companion: null },
+    saveVersion: 2,
+    currentChoiceSet: [],
+    background: 'NONE'
+  };
+}
+
+function hydrateState(rawState) {
+  const base = defaultState();
+  const hydrated = {
+    ...base,
+    ...rawState,
+    route: Array.isArray(rawState?.route) && rawState.route.length ? rawState.route : base.route,
+    allies: Array.isArray(rawState?.allies) ? rawState.allies : base.allies,
+    lovers: Array.isArray(rawState?.lovers) ? rawState.lovers : base.lovers,
+    enemies: Array.isArray(rawState?.enemies) ? rawState.enemies : base.enemies,
+    items: Array.isArray(rawState?.items) ? rawState.items : base.items,
+    sins: Array.isArray(rawState?.sins) ? rawState.sins : base.sins,
+    marriages: Array.isArray(rawState?.marriages) ? rawState.marriages : base.marriages,
+    spouses: Array.isArray(rawState?.spouses) ? rawState.spouses : base.spouses,
+    affairs: Array.isArray(rawState?.affairs) ? rawState.affairs : base.affairs,
+    scandals: Array.isArray(rawState?.scandals) ? rawState.scandals : base.scandals,
+    secrets: Array.isArray(rawState?.secrets) ? rawState.secrets : base.secrets,
+    inventory: Array.isArray(rawState?.inventory) ? rawState.inventory : base.inventory,
+    gamblingHistory: Array.isArray(rawState?.gamblingHistory) ? rawState.gamblingHistory : base.gamblingHistory,
+    eventHistory: Array.isArray(rawState?.eventHistory) ? rawState.eventHistory : base.eventHistory,
+    deadNPCs: Array.isArray(rawState?.deadNPCs) ? rawState.deadNPCs : base.deadNPCs,
+    reputations: { ...base.reputations, ...(rawState?.reputations || {}) },
+    npcRegistry: Array.isArray(rawState?.npcRegistry) && rawState.npcRegistry.length ? rawState.npcRegistry.map((npc) => ({ ...npc, relationship: { ...relationshipDefaults(), ...(npc.relationship || {}) } })) : base.npcRegistry,
+    cults: Array.isArray(rawState?.cults) ? rawState.cults : base.cults,
+    militias: Array.isArray(rawState?.militias) ? rawState.militias : base.militias,
+    weapons: Array.isArray(rawState?.weapons) ? rawState.weapons : base.weapons,
+    inventory: Array.isArray(rawState?.inventory) ? rawState.inventory : base.inventory,
+    equipment: rawState?.equipment && typeof rawState.equipment === 'object' ? { ...base.equipment, ...rawState.equipment } : base.equipment,
+    factionRelationships: rawState?.factionRelationships && typeof rawState.factionRelationships === 'object' ? rawState.factionRelationships : base.factionRelationships,
+    crowns: Number(rawState?.crowns ?? base.crowns),
+    relationshipMap: rawState?.relationshipMap && typeof rawState.relationshipMap === 'object' ? Object.fromEntries(Object.entries(rawState.relationshipMap).map(([key, value]) => [String(key).toLowerCase(), { ...relationshipDefaults(), ...(value || {}) }])) : {},
+    started: Boolean(rawState?.started),
+    saveVersion: 2,
+    background: rawState?.background || base.background
+  };
+
+  if (!hydrated.relationshipMap || Object.keys(hydrated.relationshipMap).length === 0) {
+    const map = {};
+    hydrated.npcRegistry.forEach((npc) => {
+      map[String(npc.id).toLowerCase()] = { ...relationshipDefaults(), ...(npc.relationship || {}) };
+    });
+    hydrated.relationshipMap = map;
+  }
+
+  hydrated.odds = clamp(Number(rawState?.odds ?? hydrated.odds), 0, 99);
+  hydrated.health = clamp(Number(rawState?.health ?? hydrated.health), 0, 100);
+  hydrated.radiation = clamp(Number(rawState?.radiation ?? hydrated.radiation), 0, 100);
+  hydrated.supplies = Math.max(0, Number(rawState?.supplies ?? hydrated.supplies));
+  hydrated.food = Math.max(0, Number(rawState?.food ?? hydrated.food));
+  hydrated.mutationResolved = Boolean(rawState?.mutationResolved);
+  hydrated.mutationActive = Boolean(rawState?.mutationActive);
+  hydrated.luck = clamp(Number(rawState?.luck ?? hydrated.luck), 0, 100);
+  hydrated.day = Math.max(1, Number(rawState?.day ?? hydrated.day));
+  hydrated.region = clamp(Number(rawState?.region ?? hydrated.region), 0, regions.length - 1);
+  return hydrated;
+}
+
+const SAVE_KEY = 'afterlight-save-v2';
+
+function loadGame() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || parsed.runEnded) return null;
+    if (parsed.day >= 365) return null;
+    return hydrateState(parsed);
+  } catch (e) {
+    console.warn('Failed to load save', e);
+    return null;
+  }
+}
+
+let state = defaultState();
+const loadedState = loadGame();
+if (loadedState) {
+  state = loadedState;
+  // migrate legacy items into inventory
+  (state.items || []).forEach(it => addToInventory(it));
+}
+const hasValidSave = () => {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return false;
+    const p = JSON.parse(raw);
+    return p && !p.runEnded && (p.day || 1) < 365;
+  } catch { return false; }
+};
+const $ = (id) => document.getElementById(id);
+
+function saveGame() {
+  try {
+    const saveData = JSON.stringify({
+      ...state,
+      route: state.route.map(({campaignId,calendarDay,expedition,encounter,region,act,objective,dispatch,specialKind}) => ({campaignId,calendarDay,expedition,encounter,region,act,objective,dispatch,specialKind})),
+      audio: null,
+      previousStats: null,
+      started: true,
+      npcRegistry: state.npcRegistry.map((npc) => ({ ...npc, relationship: { ...(npc.relationship || {}) } })),
+      relationshipMap: state.relationshipMap || {}
+    });
+    localStorage.setItem(SAVE_KEY, saveData);
+  } catch (error) {
+    console.warn('Unable to save game state.', error);
+  }
+}
+
+function getItemDef(name) {
+  if (!name) return null;
+  const key = String(name).toUpperCase();
+  return itemDatabase[key] || { name: name, type: 'misc', rarity: 'Common', value: 5, desc: 'A scavenged relic from the wastes.' };
+}
+
+function addToInventory(itemName) {
+  if (!itemName) return;
+  const key = String(itemName).toUpperCase();
+  if (!state.inventory.some(i => String(i).toUpperCase() === key)) {
+    state.inventory.push(key);
+  }
+}
+
+function equipItem(itemName, preferredSlot) {
+  const def = getItemDef(itemName);
+  if (!def) return false;
+  const slot = preferredSlot || def.slot || 'tool';
+  if (state.equipment[slot]) {
+    const old = state.equipment[slot];
+    if (!state.inventory.some(i => String(i).toUpperCase() === String(old).toUpperCase())) state.inventory.push(old);
+  }
+  state.equipment[slot] = itemName;
+  state.inventory = state.inventory.filter(i => String(i).toUpperCase() !== String(itemName).toUpperCase());
+  renderStats();
+  renderWorldState();
+  saveGame();
+  return true;
+}
+
+function unequipSlot(slot) {
+  const item = state.equipment[slot];
+  if (item) {
+    if (!state.inventory.some(i => String(i).toUpperCase() === String(item).toUpperCase())) state.inventory.push(item);
+    state.equipment[slot] = null;
+    renderStats();
+    renderWorldState();
+    saveGame();
+  }
+}
+
+function addCurrency(amount) {
+  state.crowns = Math.max(0, Number(state.crowns || 0) + Number(amount || 0));
+  return state.crowns;
+}
+
+function spendCurrency(amount) {
+  const value = Number(amount || 0);
+  if (!canAfford(value)) return false;
+  state.crowns = Math.max(0, Number(state.crowns || 0) - value);
+  return true;
+}
+
+function canAfford(amount) {
+  return Number(state.crowns || 0) >= Number(amount || 0);
+}
+
+function recordEvent(label, detail) {
+  state.eventHistory.push({ label, detail, day: state.day });
+  if (state.eventHistory.length > 30) state.eventHistory.splice(0, state.eventHistory.length - 30);
+}
+
+function getNpcRecord(npcId) {
+  const id = String(npcId || '').toLowerCase();
+  const match = state.npcRegistry.find((npc) => String(npc.id).toLowerCase() === id);
+  if (match) return match;
+  const fallback = npcCatalog.find((npc) => String(npc.id).toLowerCase() === id);
+  if (!fallback) return null;
+  state.npcRegistry.push({ ...fallback, relationship: { ...relationshipDefaults(), ...(fallback.relationship || {}) } });
+  return state.npcRegistry[state.npcRegistry.length - 1];
+}
+
+function getRelationship(npcId) {
+  const record = getNpcRecord(npcId);
+  if (!record) return relationshipDefaults();
+  const key = String(record.id).toLowerCase();
+  if (!state.relationshipMap[key]) {
+    state.relationshipMap[key] = { ...relationshipDefaults(), ...(record.relationship || {}) };
+  }
+  return state.relationshipMap[key];
+}
+
+function updateRelationship(npcId, deltas) {
+  const rel = getRelationship(npcId);
+  Object.keys(deltas || {}).forEach((field) => {
+    rel[field] = clamp(Number(rel[field] || 0) + Number(deltas[field] || 0), 0, 100);
+  });
+  rel.status = getRelationshipStatus(rel);
+  const record = getNpcRecord(npcId);
+  if (record) record.relationship = { ...rel };
+  state.relationshipMap[String(record?.id || npcId).toLowerCase()] = rel;
+  return rel;
+}
+
+function getRelationshipStatus(rel) {
+  if ((rel.love || 0) >= 80) return 'deeply in love';
+  if ((rel.romance || 0) >= 60) return 'dating';
+  if ((rel.attraction || 0) >= 45) return 'flirting';
+  if ((rel.friendship || 0) >= 35) return 'friends';
+  if ((rel.resentment || 0) >= 60) return 'resentful';
+  if ((rel.suspicion || 0) >= 60) return 'suspicious';
+  if ((rel.trust || 0) >= 45) return 'trusted';
+  return 'acquaintance';
+}
+
+function addScandal(scandal) {
+  const entry = {
+    id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    type: scandal.type || 'secret relationship',
+    characters: Array.isArray(scandal.characters) ? scandal.characters : [],
+    whoKnows: Array.isArray(scandal.whoKnows) ? scandal.whoKnows : [],
+    evidence: Number(scandal.evidence || 0),
+    severity: Number(scandal.severity || 1),
+    public: Boolean(scandal.public),
+    resolved: false,
+    createdDay: state.day,
+    notes: scandal.notes || ''
+  };
+  state.scandals.push(entry);
+  return entry;
+}
+
+function addAffair(npcId, partnerId, notes) {
+  const from = String(npcId || '').toLowerCase();
+  const to = String(partnerId || '').toLowerCase();
+  const affair = { npcId: from, partnerId: to, notes: notes || 'A quiet meeting in the dark.', active: true, day: state.day };
+  state.affairs.push(affair);
+  updateRelationship(from, { attraction: 5, romance: 10, trust: 2, jealousy: 3 });
+  updateRelationship(to, { attraction: 5, romance: 8, trust: 2, jealousy: 3 });
+  const relA = getRelationship(from);
+  const relB = getRelationship(to);
+  relA.affair = true;
+  relB.affair = true;
+  addScandal({
+    type: 'secret relationship',
+    characters: [nameFromNpc(from), nameFromNpc(to)],
+    whoKnows: ['No one yet'],
+    evidence: 1,
+    severity: 2,
+    public: false,
+    notes: 'A quiet arrangement is beginning to carry whispers.'
+  });
+  return affair;
+}
+
+function nameFromNpc(npcId) {
+  const record = getNpcRecord(npcId);
+  return record ? record.name : String(npcId || 'NPC');
+}
+
+function createMarriage(npcId) {
+  const record = getNpcRecord(npcId);
+  if (!record || !record.adult || !record.alive) return false;
+  const id = String(record.id).toLowerCase();
+  if (state.spouses.includes(id) || state.marriages.includes(id)) return false;
+  state.spouses.push(id);
+  state.marriages.push(id);
+  const rel = getRelationship(id);
+  rel.married = true;
+  rel.status = 'married';
+  rel.trust = clamp((rel.trust || 0) + 12, 0, 100);
+  rel.love = clamp((rel.love || 0) + 10, 0, 100);
+  state.reputations.settlers += 4;
+  state.reputations.merchants += 2;
+  recordEvent('Marriage', `${record.name} became a spouse.`);
+  return true;
+}
+
+function divorceMarriage(npcId) {
+  const id = String(npcId || '').toLowerCase();
+  state.spouses = state.spouses.filter((entry) => String(entry).toLowerCase() !== id);
+  state.marriages = state.marriages.filter((entry) => String(entry).toLowerCase() !== id);
+  const rel = getRelationship(id);
+  rel.married = false;
+  rel.romance = clamp((rel.romance || 0) - 20, 0, 100);
+  rel.respect = clamp((rel.respect || 0) - 15, 0, 100);
+  rel.resentment = clamp((rel.resentment || 0) + 25, 0, 100);
+  state.reputations.settlers -= 3;
+  return true;
+}
+
+function killNpc(npcId, reason) {
+  const record = getNpcRecord(npcId);
+  if (!record) return false;
+  record.alive = false;
+  if (!state.deadNPCs.includes(record.id)) state.deadNPCs.push(record.id);
+  recordEvent('Character death', `${record.name} died: ${reason || 'during a story event.'}`);
+  const rel = getRelationship(record.id);
+  rel.status = 'dead';
+  rel.affair = false;
+  state.spouses = state.spouses.filter((id) => String(id).toLowerCase() !== String(record.id).toLowerCase());
+  state.marriages = state.marriages.filter((id) => String(id).toLowerCase() !== String(record.id).toLowerCase());
+  return true;
+}
+
+function isMarriedToPlayer(npcId) {
+  const id = String(npcId || '').toLowerCase();
+  return state.spouses.some((spouseId) => String(spouseId).toLowerCase() === id) || state.marriages.some((entry) => String(entry).toLowerCase() === id);
+}
+
+function getAliveAdultNpcs() {
+  return state.npcRegistry.filter((npc) => npc.adult && npc.alive !== false);
+}
+
+function buildDynamicChoices() {
+  const choices = [];
+  choices.push({
+    label: 'Forage for food and water',
+    apply: () => {
+      const beforeStats = { oddsValue: state.odds, healthValue: state.health, radiationValue: state.radiation, suppliesValue: state.supplies, foodValue: state.food, luckValue: state.luck };
+      state.food += 2 + (activeBase().forage || 0);
+      state.supplies += 2;
+      state.odds = clamp(state.odds - 2, 0, 99);
+      // This action occupies the current day.
+      state.region = Math.min(regions.length - 1, Math.floor(state.day / 80));
+      state.previousStats = beforeStats;
+      state.sceneText = 'You leave the road to search the ruins. The water is cloudy and the food is stale, but both are better than an empty pack.';
+      recordEvent('Foraging', 'You recovered food and water from a forgotten supply cache.');
+    }
+  });
+  getAliveAdultNpcs().filter((npc) => !state.story || (npc.id === 'stella' && state.day >= 365 && state.story.bond === 'romance')).forEach((npc) => {
+    const rel = getRelationship(npc.id);
+    if ((rel.attraction || 0) >= 35 && (rel.friendship || 0) >= 20) {
+      choices.push({
+        label: `Flirt with ${npc.name}`,
+        apply: () => {
+          updateRelationship(npc.id, { attraction: 12, romance: 8, trust: 6 });
+          recordEvent('Relationship scene', `${npc.name} accepts your attention and the night softens around you.`);
+          state.sceneText = `You and ${npc.name} share a quiet moment beneath the ash-dimmed sky. The world can wait until morning.`;
+          addCurrency(4);
+        }
+      });
+    }
+    if ((rel.romance || 0) >= 55 && !isMarriedToPlayer(npc.id)) {
+      choices.push({
+        label: `Ask ${npc.name} on a date`,
+        apply: () => {
+          updateRelationship(npc.id, { romance: 18, respect: 10, trust: 8 });
+          state.sceneText = `${npc.name} agrees to a private walk and an evening away from camp. The conversation grows warm and honest.`;
+          recordEvent('Date scene', `${npc.name} and the player share a date under carefully watched skies.`);
+          addCurrency(-6);
+        }
+      });
+    }
+    if ((rel.love || 0) >= 70 && !isMarriedToPlayer(npc.id)) {
+      choices.push({
+        label: `Propose to ${npc.name}`,
+        apply: () => {
+          if (state.crowns < 35) {
+            state.sceneText = `The proposal is sincere, but the ceremony would cost more than you can spare. You promise a future when the settlement is steadier.`;
+            return;
+          }
+          createMarriage(npc.id);
+          state.sceneText = `You and ${npc.name} make vows in a quiet ceremony. The settlement learns of it in pieces, but the bond is real.`;
+          addCurrency(-35);
+          recordEvent('Marriage', `${npc.name} became a spouse.`);
+        }
+      });
+    }
+    if ((rel.love || 0) >= 55 && state.crowns >= 20 && state.affairs.length < 3) {
+      choices.push({
+        label: `Secretly meet ${npc.name} in private`,
+        apply: () => {
+          addAffair(npc.id, npc.id, 'A discreet meeting in a private corner of the settlement.');
+          state.sceneText = `The two of you retreat somewhere private. The wasteland can wait until morning.`;
+          addCurrency(-10);
+        }
+      });
+    }
+  });
+
+  if (state.gamblingHistory.length >= 2) {
+    choices.push({
+      label: 'Visit the high-stakes caravan table',
+      apply: () => {
+        const wager = 25;
+        const odds = 0.45 + Math.random() * 0.3;
+        const win = Math.random() < odds;
+        const result = win ? wager * 2 : -wager;
+        addCurrency(result);
+        state.gamblingHistory.push({ day: state.day, wager, result, label: 'High stakes' });
+        state.sceneText = win
+          ? `The table turns in your favor, and a quiet crowd starts to notice your name. The winnings are enough to matter.`
+          : `The cards break against you, and the room remembers the loss. A suspicious dealer watches every move.`;
+        if (!win && state.crowns < 20) {
+          addScandal({
+            type: 'gambling debt',
+            characters: [state.playerName],
+            whoKnows: ['The table owners'],
+            evidence: 2,
+            severity: 2,
+            public: false,
+            notes: 'A debt is collecting against your name.'
+          });
+        }
+      }
+    });
+  }
+
+  return choices.slice(0, 4);
+}
+
+const feedbackStats = {
+  odds: ['oddsValue', 'Survival odds'], health: ['healthValue', 'Health'],
+  radiation: ['radiationValue', 'Radiation'], supplies: ['suppliesValue', 'Water'],
+  food: ['foodValue', 'Food'], luck: ['luckValue', 'Luck'],
+  materials: ['materialsValue', 'Materials'], reputation: ['reputationValue', 'Reputation'],
+  crowns: ['crownsValue', 'Gold'], evil: ['humanityValue', 'Humanity']
+};
+
+function captureOutcome() {
+  const {route, audio, npcRegistry, ...snapshot} = state;
+  return JSON.parse(JSON.stringify(snapshot));
+}
+
+function clearOutcomeFeedback() {
+  document.querySelectorAll('.stat-delta').forEach((element) => element.remove());
+  const summary = $('choiceOutcome');
+  if (summary) { summary.hidden = true; summary.textContent = ''; }
+}
+
+function showOutcomeFeedback(before) {
+  clearOutcomeFeedback();
+  Object.entries(feedbackStats).forEach(([key, [id, label]]) => {
+    const delta = Number(((state[key] - before[key]) * (key === 'evil' ? -10 : 1)).toFixed(2));
+    if (!delta) return;
+    const signed = `${delta > 0 ? '+' : ''}${delta}`;
+    const favorable = key === 'radiation' ? delta < 0 : delta > 0;
+    const badge = document.createElement('small');
+    badge.className = `stat-delta ${favorable ? 'delta-gain' : 'delta-loss'}`;
+    badge.textContent = signed;
+    badge.setAttribute('aria-label', `${label} ${signed}`);
+    $(id).appendChild(badge);
+  });
+  const gainedItems = state.items.filter(item => !before.items.includes(item));
+  const summary = $('choiceOutcome');
+  summary.textContent = gainedItems.join(' ? ');
+  summary.hidden = gainedItems.length === 0;
+}
+
+document.addEventListener('click', clearOutcomeFeedback, true);
+
+function handleDynamicChoice(choice) {
+  if (!choice || !choice.apply) return;
+  const before = captureOutcome();
+  choice.apply();
+  if (state.sceneText) {
+    $('sceneText').textContent = state.sceneText;
+  }
+  renderStats();
+  renderWorldState();
+  showOutcomeFeedback(before);
+  saveGame();
+}
+
+function vary(value, amount) { return Math.max(0, value + Math.floor(Math.random() * (amount * 2 + 1)) - amount); }
+
+function createRoute() { return createCampaignRoute(); }
+
+function renderWorldState() {
+  $('nameValue').textContent = state.playerName;
+  $('baseValue').textContent = state.base;
+  const renderListField = (id, values, fallback = 'NONE') => {
+    const target = $(id);
+    if (!target) return;
+    const currentSelect = target.parentElement?.querySelector('select');
+    const valueList = Array.isArray(values) ? values : [];
+    if (valueList.length > 1) {
+      const nextSelect = document.createElement('select');
+      nextSelect.id = id;
+      nextSelect.className = 'world-select';
+      nextSelect.setAttribute('aria-label', id);
+      valueList.forEach((entry) => {
+        const option = document.createElement('option');
+        option.value = entry;
+        option.textContent = entry;
+        nextSelect.appendChild(option);
+      });
+      if (currentSelect) currentSelect.replaceWith(nextSelect);
+      else target.replaceWith(nextSelect);
+      return;
+    }
+    const text = valueList.length ? valueList[0] : fallback;
+    if (target.tagName === 'SELECT') {
+      const replacement = document.createElement('strong');
+      replacement.id = id;
+      replacement.textContent = text;
+      target.replaceWith(replacement);
+      return;
+    }
+    target.textContent = text;
+  };
+
+  renderListField('alliesValue', state.allies);
+  renderListField('loversValue', state.lovers);
+  renderListField('enemiesValue', state.enemies);
+  renderListField('itemsValue', state.items);
+  $('materialsValue').textContent = state.materials;
+  $('crownsValue').textContent = state.crowns;
+  $('reputationValue').textContent = state.reputation;
+  $('moralityValue').textContent = humanity() <= 40 ? 'HARDENED' : humanity() < 80 ? 'COMPROMISED' : 'HOPEFUL';
+  $('raceValue').textContent = state.race;
+  $('backgroundValue').textContent = (state.background && backgrounds[state.background]) ? backgrounds[state.background].label : (state.background || 'NONE');
+  $('humanityValue').textContent = humanity();
+  $('baseBuffValue').textContent = `BASE BENEFIT // ${activeBase().label || 'Choose a support network to gain its benefits.'}`;
+}
+
+function renderInventory() {
+  const listEl = $('inventoryList');
+  const slotsEl = $('equipSlots');
+  const detailEl = $('itemDetail');
+  const countEl = $('invCount');
+  if (!listEl || !slotsEl) return;
+  slotsEl.innerHTML = '';
+  const slots = ['weapon','armor','backpack','tool','artifact','companion'];
+  slots.forEach(slot => {
+    const div = document.createElement('div');
+    div.style.border = '1px solid var(--line)';
+    div.style.padding = '4px';
+    div.style.fontSize = '11px';
+    const item = state.equipment[slot];
+    const def = getItemDef(item);
+    div.innerHTML = `<strong>${slot.toUpperCase()}</strong><br>${item ? def.name : '— empty —'}`;
+    if (item) {
+      const btn = document.createElement('button');
+      btn.textContent = 'UNEQUIP';
+      btn.style.fontSize='9px';
+      btn.onclick = () => { unequipSlot(slot); renderInventory(); };
+      div.appendChild(btn);
+      div.onclick = (e) => { if (e.target.tagName !== 'BUTTON') showItemDetail(item, detailEl); };
+    }
+    slotsEl.appendChild(div);
+  });
+  listEl.innerHTML = '';
+  const carried = [...new Set(state.inventory)];
+  countEl.textContent = `(${carried.length})`;
+  carried.forEach(rawName => {
+    const name = String(rawName);
+    const def = getItemDef(name);
+    const row = document.createElement('div');
+    row.style.borderBottom = '1px dotted var(--line)';
+    row.style.padding = '2px 0';
+    row.style.cursor = 'pointer';
+    row.textContent = `${def.name} [${def.rarity || 'C'}]`;
+    row.onclick = () => showItemDetail(name, detailEl, true);
+    // quick equip button
+    if (def.slot) {
+      const eq = document.createElement('button');
+      eq.textContent = 'EQUIP';
+      eq.style.marginLeft = '6px';
+      eq.style.fontSize = '9px';
+      eq.onclick = (e) => { e.stopImmediatePropagation(); equipItem(name); renderInventory(); };
+      row.appendChild(eq);
+    }
+    listEl.appendChild(row);
+  });
+  if (!carried.length) listEl.textContent = 'No carried items.';
+  if (detailEl) detailEl.textContent = '';
+}
+
+function showItemDetail(name, targetEl, canUse) {
+  if (!targetEl) return;
+  const def = getItemDef(name);
+  let html = `<strong>${def.name}</strong> — ${def.rarity} ${def.type || ''}<br>${def.desc || def.description || ''}`;
+  if (def.effects) html += `<br>Effects: ${Object.entries(def.effects).map(([k,v])=>k+':'+v).join(', ')}`;
+  if (def.value) html += ` | Value: ${def.value}`;
+  targetEl.innerHTML = html;
+  if (canUse && def.slot) {
+    const b = document.createElement('button');
+    b.textContent = 'EQUIP TO ' + (def.slot || 'tool');
+    b.onclick = () => { equipItem(name); renderInventory(); };
+    targetEl.appendChild(b);
+  }
+}
+
+function toggleInventory(visible) {
+  const panel = $('inventoryPanel');
+  if (!panel) return;
+  if (visible === true || (!panel.open && visible !== false)) {
+    renderInventory();
+    panel.showModal();
+  } else if (panel.open) {
+    panel.close();
+  }
+}
+
+function applyTravelNeeds(travelDays) {
+  const foodBefore = state.food;
+  const waterBefore = state.supplies;
+  const mode = difficulties[state.difficulty];
+  const foodDrain = Math.max(.5, (state.mutationActive || state.race === 'ASH REVENANT' ? 1.5 : 1) - (activeBase().foodSaving || 0)) * travelDays;
+  const waterDrain = Math.max(0, (state.mutationActive ? 1 : .5) - (activeBase().water || 0)) * travelDays;
+  state.food = Math.max(0, state.food - foodDrain);
+  state.supplies = Math.max(0, state.supplies - waterDrain);
+  const radiationDrift = Math.max(0, mode.radiationDrift - (activeBase().radiation || 0) - (state.race === 'MOON ELF' ? .25 : 0));
+  state.radiation = clamp(state.radiation + radiationDrift * travelDays, 0, 100);
+  const foodShortage = foodBefore <= 0;
+  const waterShortage = waterBefore <= 0;
+  const damage = (foodShortage ? 3 : 0) + (waterShortage ? 3 : 0);
+  if (damage) state.health = Math.max(0, state.health - damage * travelDays);
+  return { foodShortage, waterShortage, damage: damage * travelDays, radiationDrift: radiationDrift * travelDays };
+}
+
+function resolveRadiationThreshold() {
+  if (state.radiation < 100 || state.mutationResolved) return { status: 'stable' };
+  state.mutationResolved = true;
+  if (Math.random() < .5) {
+    state.health = 0;
+    return { status: 'death', message: 'The radiation crosses the final threshold. Your body cannot hold together.' };
+  }
+  state.mutationActive = true;
+  state.race = 'MUTANT';
+  state.radiation = 42;
+  state.health = clamp(state.health + 12, 1, 100);
+  state.odds = clamp(state.odds - 8, 0, 99);
+  // Mutation changes the survivor without restarting the campaign.
+  return { status: 'mutation', message: 'The radiation remakes you instead of killing you. You live as a mutant: stronger, hungrier, and harder for the world to trust.' };
+}
+
+function setDifficulty(key) {
+  if (state.started) return;
+  const mode = difficulties[key];
+  state.story = { seen: [], clues: [] };
+  state.runEnded = false;
+  state.difficulty = key;
+  state.odds = vary(mode.odds, 5);
+  state.health = vary(mode.health, 6);
+  state.supplies = vary(mode.supplies, 1);
+  state.food = vary(mode.food, 1);
+  state.mutationResolved = false;
+  state.mutationActive = false;
+  state.radiation = vary(mode.radiation, 3);
+  state.luck = vary(mode.luck, 5);
+  state.scenario = 0;
+  state.day = 1;
+  state.region = 0;
+  state.lastEvent = false;
+  state.eventCooldown = 3;
+  state.route = createRoute(key);
+  state.previousStats = null;
+  state.allies = [];
+  state.lovers = [];
+  state.enemies = [];
+  state.items = [];
+  state.inventory = [];
+  state.equipment = { weapon: null, armor: null, backpack: null, tool: null, artifact: null, companion: null };
+  state.sins = [];
+  state.reputation = 0;
+  state.evil = 0;
+  state.base = 'NONE';
+  state.materials = 0;
+  state.race = 'HUMAN';
+  state.crowns = 25;
+  state.background = 'NONE';
+  state.relationshipMap = {};
+  state.marriages = [];
+  state.spouses = [];
+  state.affairs = [];
+  state.scandals = [];
+  state.secrets = [];
+  state.gamblingHistory = [];
+  state.reputations = { settlers: 0, merchants: 0, criminals: 0, military: 0, religious: 0, political: 0 };
+  state.npcRegistry = npcCatalog.map((npc) => ({ ...npc, relationship: { ...relationshipDefaults(), ...(npc.relationship || {}) } }));
+  state.deadNPCs = [];
+  state.eventHistory = [];
+  $('eventBanner').hidden = true;
+  $('statusMessage').textContent = `FIELD NOTE // ${mode.label} RUN INITIALIZED. REACH HAVEN BY DAY 365.`;
+  renderScenario();
+}
+
+function renderDifficultyButtons() {
+  $('difficultyButtons').innerHTML = '';
+  Object.entries(difficulties).forEach(([key, mode]) => {
+    const button = document.createElement('button');
+    button.className = `difficulty-button ${key === state.difficulty ? 'is-active' : ''}`;
+    button.textContent = mode.label;
+    button.type = 'button';
+    button.disabled = state.started;
+    button.addEventListener('click', () => { playSFX('click'); setDifficulty(key); });
+    $('difficultyButtons').appendChild(button);
+  });
+  const label = $('difficultyLabel');
+  if (label) label.textContent = state.started ? 'DIFFICULTY (Locked)' : 'DIFFICULTY';
+}
+
+function renderStartingDifficulty() {
+  $('startingDifficulty').innerHTML = '';
+  Object.entries(difficulties).forEach(([key, mode]) => {
+    const button = document.createElement('button');
+    button.className = `difficulty-button ${key === state.difficulty ? 'is-active' : ''}`;
+    button.textContent = mode.label;
+    button.type = 'button';
+    button.addEventListener('click', () => { playSFX('click'); state.difficulty = key; renderStartingDifficulty(); });
+    $('startingDifficulty').appendChild(button);
+  });
+}
+
+let selectedBackground = 'NONE';
+function renderStartingBackground() {
+  const container = $('startingBackground');
+  if (!container) return;
+  container.innerHTML = '';
+  Object.entries(backgrounds).forEach(([key, bg]) => {
+    const button = document.createElement('button');
+    button.className = `difficulty-button ${key === selectedBackground ? 'is-active' : ''}`;
+    button.textContent = bg.label;
+    button.type = 'button';
+    button.title = bg.desc;
+    button.addEventListener('click', () => { selectedBackground = key; renderStartingBackground(); });
+    container.appendChild(button);
+  });
+}
+
+function showInlineContinue(text) {
+  $('sceneText').textContent = text;
+  $('choices').innerHTML = '';
+  const next = document.createElement('button');
+  next.className = 'choice';
+  next.type = 'button';
+  next.textContent = 'Continue onward';
+  const sourceScene = state.scenario;
+  next.addEventListener('click', () => { playSFX('click'); if (state.scenario === sourceScene) nextScene(); });
+  $('choices').appendChild(next);
+}
+
+function personalizeNarrative(scene, text) {
+  if (!text || !state.playerName) return text;
+  const namedTitles = new Set(['FIND WATER', 'A LIGHT IN THE DEAD RAIL YARD', 'THE GIRL WITH THE SILVER MASK', 'THE WATER LEDGER', 'THE RED TRACKER', 'THE BLACK SUN TRIAL', 'A PLACE THAT REMEMBERS']);
+  if (!namedTitles.has(scene.title)) return text;
+  return `${state.playerName}, ${text.charAt(0).toLowerCase()}${text.slice(1)}`;
+}
+
+function renderInterlude() {
+  const el = $('storyInterlude');
+  if (!el) return;
+  const interludes = [
+    'SOMETHING HAPPENS // The dust settles; the radio hums without any voice behind it.',
+    'DUST WATCH // Something scuttles beneath the ash outside the shelter wall.',
+    'LOW LIGHT // A faint chorus carries on the wind, then disappears before you can place it.',
+    'MILEPOST // The road folds beneath your boots like a remembered dream.',
+    'SILENT SIGNAL // The horizon flickers green, then settles back into ruin.'
+  ];
+  const showInterlude = state.day % 3 === 0;
+  if (!showInterlude) {
+    el.hidden = true;
+    el.textContent = '';
+    return;
+  }
+  el.hidden = false;
+  el.textContent = interludes[Math.floor(Math.random() * interludes.length)];
+}
+
+function renderScenario() {
+  state.choiceResolved = false;
+  $('decisionAftermath').hidden = true;
+  const scene = filterMatureScene(resolveCampaignScene(state.route[state.scenario] || { campaignId: 'morning' }));
+  state.route[state.scenario] = scene;
+  state.day = scene.calendarDay || state.day;
+  const [region, anomaly] = regions[state.region];
+  $('chapterNumber').textContent = String(state.scenario + 1).padStart(2, '0');
+  $('headerDay').textContent = String(state.day).padStart(3, '0');
+  $('sceneType').textContent = scene.type;
+  $('location').textContent = `${region} // DAY ${String(state.day).padStart(3, '0')}`;
+  $('storyPanel').classList.remove('prompt-danger', 'prompt-important', 'prompt-arcane');
+  if (/THREAT|BOSS|IMPOSSIBLE|MUTATION/.test(scene.type)) $('storyPanel').classList.add('prompt-danger');
+  else if (/FIRST DECISION|QUEST|HAVEN GATE|SURVIVOR/.test(scene.type)) $('storyPanel').classList.add('prompt-important');
+  else if (/ARCANE|ELVEN|WITCHLIGHT/.test(`${scene.type} ${scene.title}`)) $('storyPanel').classList.add('prompt-arcane');
+  $('storyPanel').classList.remove('special-event','special-danger','special-hope','special-arcane');
+  $('specialEventBadge').hidden = !scene.special;
+  if(scene.special) {
+    $('storyPanel').classList.add('special-event','special-'+scene.tone);
+    $('specialEventBadge').textContent = scene.tone==='danger' ? 'SURVIVAL CRISIS // HIGH IMPACT' : 'RARE EVENT // HIGH IMPACT';
+  }
+  $('sceneTitle').textContent = scene.title;
+  $('sceneText').textContent = personalizeNarrative(scene, scene.text || state.sceneText || '');
+  $('promptText').textContent = 'WHAT DO YOU DO?';
+  $('regionValue').textContent = region;
+  $('anomalyValue').textContent = anomaly;
+  $('logLine').textContent = `LOG ${String(state.scenario + 1).padStart(2, '0')} // ${difficulties[state.difficulty].label} RUN`;
+  $('statusMessage').textContent = scene.chain ? `QUEST CHAIN // ${scene.chain} // THIS CHOICE WILL BE REMEMBERED.` : 'FIELD NOTE // THE WASTELAND IS LISTENING.';
+  $('openingQuote').textContent = openingQuotes[Math.floor(Math.random() * openingQuotes.length)];
+  renderInterlude();
+  renderStats();
+  renderDifficultyButtons();
+  renderWorldState();
+  $('choices').innerHTML = '';
+
+  renderCampaignContext(scene);
+  if (scene.campaignId) {
+    $('storyInterlude').hidden = true;
+    if (renderCampaignBeat(scene)) return;
+  }
+
+  if (scene.event) {
+    const before = captureOutcome();
+    applyEventScene(scene);
+    const radiationResult = resolveRadiationThreshold();
+    renderStats();
+    renderWorldState();
+    showOutcomeFeedback(before);
+    if (radiationResult.status === 'death') { showEnding(false); return; }
+    showInlineContinue(scene.text);
+    return;
+  }
+
+  const staticChoices = scene.choices || [];
+  const dynamicChoiceSet = (scene.campaignId || scene.expedition) ? [] : buildDynamicChoices();
+  const allChoices = [...staticChoices, ...dynamicChoiceSet];
+  allChoices.forEach((choice, index) => {
+    const button = document.createElement('button');
+    const isDynamic = choice && typeof choice === 'object' && choice.label && choice.apply;
+    const label = isDynamic ? choice.label : choice[0];
+    const requiredItems = isDynamic ? [] : (choice[6]?.requires || []);
+    const missingItems = requiredItems.filter((item) => !state.items.includes(item) && !state.inventory.some(i => String(i).toUpperCase() === String(item).toUpperCase()));
+    button.className = 'choice';
+    button.type = 'button';
+    button.disabled = missingItems.length > 0 || (isDynamic === false && !choice);
+    button.textContent = missingItems.length ? `${label} [REQUIRES ${missingItems.join(', ')}]` : label;
+    button.addEventListener('click', () => {
+      playSFX('choice');
+      if (isDynamic) {
+        handleDynamicChoice(choice);
+        showInlineContinue(state.sceneText || 'The road keeps opening ahead of you.');
+      } else {
+        choose(index);
+      }
+    });
+    $('choices').appendChild(button);
+  });
+}
+
+function applyEventScene(scene) {
+  const beforeStats = { oddsValue: state.odds, healthValue: state.health, radiationValue: state.radiation, suppliesValue: state.supplies, luckValue: state.luck };
+  state.previousStats = beforeStats;
+  const effects = scene.effects || {};
+  state.odds = Math.max(0, Math.min(99, state.odds + (effects.odds || 0)));
+  state.health = Math.max(0, Math.min(100, state.health + (effects.health || 0)));
+  state.radiation = Math.max(0, Math.min(100, state.radiation + (effects.radiation || 0)));
+  state.supplies = Math.max(0, state.supplies + (effects.supplies || 0));
+  state.luck = Math.max(0, Math.min(100, state.luck + (effects.luck || 0)));
+  state.materials = Math.max(0, state.materials + (effects.materials || 0));
+  $('promptText').textContent = 'EVENT // NO DECISION';
+  $('statusMessage').textContent = 'FIELD NOTE // SOMETHING HAPPENED WHILE YOU WERE MOVING.';
+  renderStats();
+  renderWorldState();
+}
+
+function nextScene() {
+  if (state.runEnded || state.scenario >= state.route.length - 1) return;
+  state.scenario += 1;
+  state.lastEvent = false;
+  $('eventBanner').hidden = true;
+  $('storyPanel').scrollTop = 0;
+  renderScenario();
+}
+function applyStoryEffects(choice) {
+  const effects = choice[6];
+  if (!effects) return;
+  if (effects.story) Object.assign(state.story, effects.story);
+  if (effects.item && /SURVEY|PLAN|COORDINATE|CHART|PHRASE/.test(effects.item)) {
+    state.story.clues ||= [];
+    if (!state.story.clues.includes(effects.item)) state.story.clues.push(effects.item);
+  }
+  if (effects.removeLover) {
+    state.lovers = state.lovers.filter(name => name !== effects.removeLover);
+    if (state.story.partner === effects.removeLover) state.story.partner = null;
+  }
+  if (effects.removeItem) {
+    if (effects.removeItem === 'BOUND SOUL-BELL' && state.items.includes(effects.removeItem)) state.odds = Math.max(0, state.odds - 8);
+    state.items = state.items.filter(item => item !== effects.removeItem);
+    const rkey = String(effects.removeItem).toUpperCase();
+    state.inventory = state.inventory.filter(i => String(i).toUpperCase() !== rkey);
+    // unequip if equipped
+    Object.keys(state.equipment).forEach(s => { if (String(state.equipment[s]).toUpperCase() === rkey) state.equipment[s] = null; });
+  }
+  if (effects.partner) choosePartner(effects.partner);
+  if (effects.lover === 'STELLA') choosePartner('STELLA');
+  if (effects.crowns) addCurrency(effects.crowns);
+  if (effects.removeAlly) state.allies = state.allies.filter(name => name !== effects.removeAlly);
+  ['ally', 'friend', 'lover', 'enemy', 'item', 'sin'].forEach((key) => {
+    if (effects[key]) {
+      const target = key === 'ally' || key === 'friend' ? state.allies : key === 'lover' ? state.lovers : key === 'enemy' ? state.enemies : key === 'item' ? state.items : state.sins;
+      if (!target.includes(effects[key])) target.push(effects[key]);
+      if (key === 'item') addToInventory(effects[key]);
+    }
+  });
+  if (effects.base) state.base = effects.base;
+  state.materials += effects.materials || 0;
+  state.food = Math.max(0, state.food + (effects.food || 0));
+  state.supplies = Math.max(0, state.supplies + (effects.supplies || 0));
+  if (effects.race) { state.race = effects.race; state.mutationActive = effects.race === 'MUTANT'; }
+  state.reputation += effects.reputation || 0;
+  state.evil = clamp(state.evil + (effects.evil || 0), 0, 10);
+  state.odds = Math.max(0, Math.min(99, state.odds + (effects.odds || 0)));
+  state.luck = Math.max(0, Math.min(100, state.luck + (effects.luck || 0)));
+  state.radiation = Math.max(0, Math.min(100, state.radiation + (effects.radiation || 0)));
+  renderWorldState();
+}
+
+function renderStats() {
+  const values = { oddsValue: `${state.odds}%`, healthValue: state.health, radiationValue: state.radiation.toFixed(1), suppliesValue: formatRations(state.supplies), foodValue: formatRations(state.food), luckValue: state.luck };
+  Object.entries(values).forEach(([id, value]) => {
+    const element = $(id);
+    const numericValue = Number.parseFloat(value);
+    const previous = state.previousStats?.[id];
+    element.textContent = value;
+    element.classList.remove('stat-rise', 'stat-fall');
+    if (previous !== undefined && previous !== numericValue) {
+      element.classList.add(numericValue > previous ? 'stat-rise' : 'stat-fall');
+    }
+    element.classList.toggle('critical-low', ((id === 'suppliesValue' || id === 'foodValue') && numericValue <= 1) || (id === 'radiationValue' && numericValue >= 85));
+    if (id === 'healthValue') element.classList.toggle('damage-taken', previous !== undefined && numericValue < previous);
+  });
+  $('oddsMeter').style.width = `${state.odds}%`;
+  $('oddsMeter').style.background = state.odds < 35 ? '#ef704b' : '#a8ff60';
+  $('headerDay').textContent = String(state.day).padStart(3, '0');
+  state.previousStats = { oddsValue: state.odds, healthValue: state.health, radiationValue: state.radiation, suppliesValue: state.supplies, foodValue: state.food, luckValue: state.luck };
+}
+
+function maybeEvent() {
+  if (state.lastEvent || state.eventCooldown > 0 || Math.random() > 0.35) {
+    state.eventCooldown = Math.max(0, state.eventCooldown - 1);
+    return null;
+  }
+  const event = events[Math.floor(Math.random() * events.length)];
+  state.lastEvent = true;
+  state.eventCooldown = 1 + Math.floor(Math.random() * 3);
+  state.odds = Math.max(0, Math.min(99, state.odds + event[2]));
+  state.supplies = Math.max(0, state.supplies + event[3]);
+  state.luck = Math.max(0, Math.min(100, state.luck + event[4]));
+  $('eventBanner').hidden = true;
+  renderStats();
+  return event;
+}
+
+function choose(index) {
+  if (state.runEnded || state.choiceResolved) return;
+  const choiceList = state.route[state.scenario].choices;
+  const choice = choiceList[index];
+  if (!choice) return;
+  state.choiceResolved = true;
+  const before = captureOutcome();
+  if (choice[6]?.death) {
+    state.health = 0;
+    renderStats();
+    showOutcomeFeedback(before);
+    showEnding(false, choice[6].death);
+    saveGame();
+    return;
+  }
+  const mode = difficulties[state.difficulty];
+  const beforeStats = { oddsValue: state.odds, healthValue: state.health, radiationValue: state.radiation, suppliesValue: state.supplies, foodValue: state.food, luckValue: state.luck };
+  const luckSwing = Math.floor((Math.random() * 9) - 4) + Math.floor(state.luck / 25);
+  const shelterDecision = ['wayhouse','connection','transformation','lyria_night','nyx_night','newbase','promise','lyria_lantern','hollow_broadcast','nyx_rooftop','bone_procession','stella_evening'].includes(state.route[state.scenario].campaignId);
+  const travelDays = shelterDecision ? 0 : state.route[state.scenario].campaignId ? 1 : 1;
+  state.odds = Math.max(0, Math.min(99, state.odds + choice[1] + luckSwing));
+  state.supplies = Math.max(0, state.supplies + choice[2] - (travelDays ? mode.drain : 0));
+  state.health = Math.max(0, Math.min(100, state.health + (state.race === 'ASH REVENANT' && choice[3] < 0 ? Math.ceil(choice[3] / 2) : choice[3])));
+  state.radiation = Math.max(0, Math.min(100, state.radiation + choice[4]));
+  state.luck = Math.max(0, Math.min(100, state.luck + Math.floor(Math.random() * 7) - 2));
+  // Continue advances to the following calendar day.
+  state.region = Math.min(regions.length - 1, Math.floor(state.day / 80));
+  state.previousStats = beforeStats;
+  applyStoryEffects(choice);
+  const needs = applyTravelNeeds(travelDays);
+  document.querySelectorAll('.choice').forEach((button) => { button.disabled = true; });
+  const randomEvent = (state.route[state.scenario].campaignId || state.route[state.scenario].special) ? null : maybeEvent();
+  const riskNote = resolveTravelRisk(choice);
+  const radiationResult = state.health > 0 ? resolveRadiationThreshold() : {status: 'death'};
+  const currentScene = state.route[state.scenario];
+  const choiceResult = personalizeNarrative(currentScene, choice[5]) + riskNote;
+  $('sceneText').textContent = randomEvent ? `${choiceResult}\n\n${randomEvent[0]}\n${randomEvent[1]}` : choiceResult;
+  $('promptText').textContent = randomEvent ? 'EVENT INTERRUPTS THE ROAD...' : 'THE ROAD CONTINUES...';
+  $('choices').innerHTML = '';
+  renderStats();
+  renderWorldState();
+  showOutcomeFeedback(before);
+  renderCampaignContext(currentScene);
+  const shortageNote = needs.damage ? ` SHORTAGE DAMAGE // -${needs.damage} HEALTH.` : '';
+  $('statusMessage').textContent = `FIELD NOTE // ${travelDays ? '1 DAY OF TRAVEL' : 'REST AND CONVERSATION'}. DAY ${state.day} / 365. ${formatRations(state.supplies)} WATER, ${formatRations(state.food)} FOOD, ${state.radiation.toFixed(1)} RAD, ${state.health} HEALTH.${shortageNote}`;
+  saveGame();
+  if (radiationResult.status === 'death' || state.health <= 0) { showEnding(false, {title: riskNote ? 'THE SEARCH THAT COST EVERYTHING' : 'THE ROAD TAKES ITS DUE', text: choiceResult + (radiationResult.message ? '\n\n' + radiationResult.message : '')}); return; }
+  // The campaign resolves at its epilogue, not in the middle of a choice.
+  showDecisionAftermath(before);
+  const mutationNote = radiationResult.status === 'mutation' ? `\n\n${radiationResult.message}` : '';
+  showInlineContinue(randomEvent ? `${choiceResult}\n\n${randomEvent[0]}\n${randomEvent[1]}${mutationNote}` : `${choiceResult}${mutationNote}`);
+}
+
+function showEnding(reached365 = false, death = null) {
+  state.runEnded = true;
+  const survived = state.health > 0 && reached365;
+  $('sceneTitle').textContent = survived ? 'DAY 365 // WELCOME TO HAVEN' : 'YOU DIED IN THE AFTERLIGHT';
+  $('sceneText').textContent = survived ? 'The gates of Haven open. Clean water, a warm room, and a peaceful valley wait beyond them. For the first time since the apocalypse, you can sleep safely.' : 'The road continues without you. Hunger, thirst, or the wounds you carried finally became heavier than your will to move.';
+  if (!survived && death) {
+    $('sceneTitle').textContent = death.title;
+    $('sceneText').textContent = death.text;
+    $('sceneType').textContent = 'FATAL DECISION';
+  }
+  $('decisionAftermath').hidden = true;
+  $('storyPanel').scrollTop = 0;
+  $('promptText').textContent = survived ? 'YOU SURVIVED THE AFTERLIGHT' : 'RUN OVER // RESTART REQUIRED';
+  $('choices').innerHTML = '';
+  if (!survived) {
+    const restartChoice = document.createElement('button');
+    restartChoice.className = 'choice';
+    restartChoice.type = 'button';
+    restartChoice.textContent = 'Restart with a new survivor';
+    restartChoice.addEventListener('click', restart);
+    $('choices').appendChild(restartChoice);
+  }
+  $('storyPanel').classList.toggle('outcome', true);
+  $('storyPanel').classList.toggle('outcome--win', survived);
+  $('logLine').textContent = survived ? 'RUN COMPLETE // HAVEN REACHED' : 'RUN COMPLETE // SIGNAL LOST';
+  $('statusMessage').textContent = survived ? 'FIELD NOTE // CLEAN WATER. A SAFE ROOM. YOU ARE HOME.' : 'FIELD NOTE // HEALTH REACHED ZERO. THE RUN IS OVER.';
+}
+
+function restart() {
+  if (typeof confirm === 'function' && !confirm('Restart the run? Current progress will be lost.')) return;
+  startNewRun();
+}
+
+function toggleSound() {
+  const audio = $('backgroundMusic');
+  if (!musicTracks.length || !audio) {
+    $('soundButton').textContent = 'SOUND: UNAVAILABLE';
+    return;
+  }
+
+  if (state.audio) {
+    state.audio.pause();
+    state.audio.currentTime = 0;
+    state.audio = null;
+    $('soundButton').textContent = 'SOUND: OFF';
+    $('soundButton').setAttribute('aria-pressed', 'false');
+    return;
+  }
+
+  audio.src = musicTracks[0];
+  audio.volume = 0.35;
+  let trackIndex = 0;
+  audio.onended = () => {
+    if (state.audio !== audio) return;
+    trackIndex = (trackIndex + 1) % musicTracks.length;
+    audio.src = musicTracks[trackIndex];
+    audio.load();
+    audio.play().catch(() => {
+      state.audio = null;
+      $('soundButton').textContent = 'SOUND: OFF';
+      $('soundButton').setAttribute('aria-pressed', 'false');
+    });
+  };
+  state.audio = audio;
+  audio.load();
+  audio.play().then(() => {
+    $('soundButton').textContent = 'SOUND: ON';
+    $('soundButton').setAttribute('aria-pressed', 'true');
+  }).catch(() => {
+    state.audio = null;
+    $('soundButton').textContent = 'SOUND: OFF';
+    $('soundButton').setAttribute('aria-pressed', 'false');
+  });
+}
+
+function toggleTutorial(visible) {
+  const panel = $('tutorialPanel');
+  if (visible && !panel.open) panel.showModal();
+  else if (!visible && panel.open) panel.close();
+  $('tutorialButton').setAttribute('aria-expanded', String(panel.open));
+}
+
+function formatRations(value) { return String(value); }
+function showDecisionAftermath(before) {
+  const notes = [];
+  if (state.base !== before.base) notes.push('Your support base is now ' + state.base + '. ' + activeBase().label + '.');
+  if (state.race !== before.race) notes.push('You are now ' + state.race + '. ' + (state.race === 'MOON ELF' ? 'Daily radiation gain falls by 0.25.' : state.race === 'ASH REVENANT' ? 'Direct choice wounds are halved, rounded down; you consume 0.5 extra food per day.' : 'Your body uses normal human survival rules.'));
+  const loss = humanity() - clamp(100 - before.evil * 10, 0, 100);
+  if (loss) notes.push('Humanity ' + (loss > 0 ? '+' : '') + loss + '. ' + (loss < 0 ? 'The people affected will remember this.' : 'Making amends begins to restore your compassion.'));
+  for (const [key, label] of [['enemies','New enemy'],['allies','New ally'],['lovers','New romantic partner']]) {
+    state[key].filter(name => !before[key].includes(name)).forEach(name => notes.push(label + ': ' + name + '.'));
+  }
+  before.lovers.filter(name => !state.lovers.includes(name)).forEach(name => notes.push('Your romance with ' + name + ' has ended.'));
+  if (state.story.vault !== before.story.vault) notes.push(state.story.vault === 'stolen' ? 'Those supplies belonged to families. Their loss will follow you to the mountain shelters.' : 'The medicine reaches its owners. Word of your decision travels ahead of you.');
+  const panel = $('decisionAftermath'); panel.textContent = notes.join(' '); panel.hidden = !notes.length;
+}
+
+const briefingSlides = [
+  ['BEFORE THE ASH', 'The old world ended in fire, but the radiation kept changing it after the flames went out.'],
+  ['THE LONG SILENCE', 'Your last shelter is gone. On a damaged radio, a woman named Stella promises that Haven is real: clean water, gardens, and a place to sleep safely. You have 365 days to follow her clues through the mountains.'],
+  ['WHAT REMAINS', 'Settlements trade in water, bullets, old promises, and stranger things. Elves, mutants, zombies, and ordinary people all want a piece of tomorrow.'],
+  ['YOUR FIELD LOG', 'Before you enter the wastes, tell the field log what to call you and choose a starting difficulty. Follow the signal to Haven. Your choices will shape the route you take, the people you help, and the life waiting for you with Stella in Haven.']
+];
+let briefingStep = 0;
+
+function renderBriefing() {
+  $('briefingTitle').textContent = briefingSlides[briefingStep][0];
+  $('briefingText').textContent = briefingSlides[briefingStep][1];
+  $('briefingProgress').style.width = `${((briefingStep + 1) / briefingSlides.length) * 100}%`;
+  const isSetup = briefingStep === briefingSlides.length - 1;
+  $('nameField').hidden = !isSetup;
+  $('briefingButton').textContent = isSetup ? 'ENTER THE WASTES' : 'NEXT TRANSMISSION';
+  if (isSetup) {
+    renderStartingDifficulty();
+    renderStartingBackground();
+    if (hasValidSave() && state.playerName && $('survivorName')) {
+      $('survivorName').value = state.playerName;
+      $('survivorName').placeholder = state.playerName + ' (loaded)';
+    }
+  }
+  // Show run actions only at final setup step, and hide continue if no save
+  const runActions = $('runActions');
+  if (runActions) {
+    if (isSetup) {
+      runActions.hidden = false;
+      if ($('continueButton')) $('continueButton').hidden = !hasValidSave();
+    } else {
+      runActions.hidden = true;
+    }
+  }
+}
+
+function finishBriefing() {
+  const name = $('survivorName').value.trim();
+  if (!name) { $('survivorName').focus(); return; }
+  const activeButton = $('startingDifficulty').querySelector('.is-active');
+  const selectedDifficulty = Object.entries(difficulties).find(([, mode]) => mode.label === activeButton?.textContent)?.[0];
+  state.difficulty = selectedDifficulty || state.difficulty;
+  state.playerName = name.toUpperCase();
+  state.background = selectedBackground || 'NONE';
+  setDifficulty(state.difficulty);
+  // Apply background bonuses on new run
+  const bg = backgrounds[state.background];
+  if (bg && bg.stats) {
+    if (bg.stats.health) state.health = clamp(state.health + bg.stats.health, 50, 120);
+    if (bg.stats.luck) state.luck = clamp(state.luck + bg.stats.luck, 0, 100);
+    if (bg.stats.odds) state.odds = clamp(state.odds + bg.stats.odds, 0, 99);
+    if (bg.stats.supplies) state.supplies = Math.max(0, state.supplies + bg.stats.supplies);
+    if (bg.stats.food) state.food = Math.max(0, state.food + bg.stats.food);
+    if (bg.stats.materials) state.materials = Math.max(0, state.materials + bg.stats.materials);
+    if (bg.stats.radiation) state.radiation = clamp(state.radiation + bg.stats.radiation, 0, 100);
+    if (bg.stats.reputation) state.reputation = Math.max(0, state.reputation + bg.stats.reputation);
+    if (bg.stats.crowns) state.crowns = Math.max(0, state.crowns + bg.stats.crowns);
+  }
+  state.started = true;
+  // grant a starter piece of gear based on background for immediate inventory feel
+  if (state.background === 'soldier') addToInventory('RUSTED REVOLVER');
+  if (state.background === 'scavenger') addToInventory('MAKESHIFT BACKPACK');
+  if (state.background === 'medic') addToInventory('MEDIC COMPANION KIT');
+  $('startScreen').hidden = true;
+  renderDifficultyButtons();
+  // Auto start sound/music on first play (after user interaction)
+  if (!state.audio) toggleSound();
+  saveGame();
+}
+
+function continueRun() {
+  if (!hasValidSave()) return;
+  // If not already loaded into state, load it
+  const loaded = loadGame();
+  if (loaded) state = loaded;
+  state.started = true;
+  $('startScreen').hidden = true;
+  renderDifficultyButtons();
+  renderScenario();
+  renderStats();
+  renderWorldState();
+  // Auto start sound on resume
+  if (!state.audio) toggleSound();
+  saveGame();
+}
+
+function startNewRun() {
+  if (hasValidSave() && typeof confirm === 'function' && !confirm('Start a new run? This will end the current saved run.')) return;
+  localStorage.removeItem(SAVE_KEY);
+  const mature = state.matureContent;
+  state = defaultState();
+  state.matureContent = mature;
+  briefingStep = 0;
+  if ($('survivorName')) $('survivorName').value = '';
+  if ($('eventBanner')) $('eventBanner').hidden = true;
+  if ($('storyPanel')) $('storyPanel').classList.remove('outcome', 'outcome--win');
+  if ($('startScreen')) $('startScreen').hidden = false;
+  renderBriefing();
+  setDifficulty(state.difficulty);
+}
+
+$('briefingButton').addEventListener('click', () => { if (briefingStep < briefingSlides.length - 1) { briefingStep += 1; renderBriefing(); } else finishBriefing(); });
+if ($('continueButton')) $('continueButton').addEventListener('click', continueRun);
+if ($('newRunButton')) $('newRunButton').addEventListener('click', startNewRun);
+$('restartButton').addEventListener('click', restart);
+if ($('inventoryButton')) $('inventoryButton').addEventListener('click', () => toggleInventory());
+if ($('closeInventory')) $('closeInventory').addEventListener('click', () => toggleInventory(false));
+if ($('inventoryPanel')) $('inventoryPanel').addEventListener('close', () => { if ($('inventoryButton')) $('inventoryButton').focus(); });
+$('soundButton').addEventListener('click', toggleSound);
+$('tutorialButton').addEventListener('click', () => toggleTutorial(!$('tutorialPanel').open));
+$('matureButton').addEventListener('click', () => {
+  state.matureContent = !state.matureContent;
+  $('matureButton').setAttribute('aria-pressed', String(state.matureContent));
+  $('matureButton').textContent = state.matureContent ? 'MATURE TEXT: ON' : 'MATURE TEXT: OFF';
+});
+$('closeTutorial').addEventListener('click', () => toggleTutorial(false));
+$('tutorialPanel').addEventListener('close', () => {
+  $('tutorialButton').setAttribute('aria-expanded', 'false');
+  $('tutorialButton').focus();
+});
+
+// SFX on static buttons
+['briefingButton','continueButton','newRunButton','restartButton','inventoryButton','soundButton','tutorialButton','matureButton','closeTutorial','closeInventory'].forEach(id => {
+  const el = $(id);
+  if (el) el.addEventListener('click', () => playSFX('click'));
+});
+
+// Global SFX for any game buttons (click feedback) - skip choices as they have specific
+document.addEventListener('click', (e) => {
+  if (e.target.tagName === 'BUTTON' && $('startScreen') && $('startScreen').hidden && !e.target.classList.contains('choice')) {
+    playSFX('click');
+  }
+}, {capture: true});
+
+renderBriefing();
+setDifficulty(state.difficulty);
