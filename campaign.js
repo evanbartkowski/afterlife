@@ -11,9 +11,9 @@ const campaignBeats = [
     objective: 'Repair your radio and answer Stella.',
     text: 'At the milepost, a maintenance shed contains one working battery. Beside it, a stranded courier named Ellis is trying to start a heater for his injured sister, June. Both are adults. He catches you looking at the battery.\n\n"Take it and you get your radio," he says. "Stay and help me splice the cable, and maybe we both get what we need." The work will keep you here after dark.',
     choices: [
-      storyChoice('Repair the heater together, then split the power', 'June sleeps while Ellis helps solder your transmitter. At midnight Stella answers. "There you are. I was starting to worry." You tell her about the people beside you.', { courier: 'helped', honesty: 'open' }, { item: 'WORKING RADIO', ally: 'ELLIS AND JUNE', supplies: 2 }, -2),
-      storyChoice('Trade your medicine for the battery', 'Ellis accepts. June needs the medicine more than warmth. You leave them the shed and call Stella from the riverbank. You tell her exactly what the trade cost.', { courier: 'traded', honesty: 'open' }, { item: 'WORKING RADIO' }, -3),
-      storyChoice('Take the battery and tell Stella the shed was empty', 'Ellis does not fight you while June is helpless. Stella welcomes your signal. When she asks if anyone else needs help, you say no. The lie is easy to hear in the silence afterward.', { courier: 'abandoned', honesty: 'lie' }, { item: 'WORKING RADIO', reputation: -3 })
+      storyChoice('Repair the heater together, then split the power', 'June sleeps while Ellis helps solder your transmitter. At midnight Stella answers. "There you are. I was starting to worry." You tell her about the people beside you. Ellis presses a few coins into your hand for the night you spent.', { courier: 'helped', honesty: 'open' }, { item: 'WORKING RADIO', ally: 'ELLIS AND JUNE', supplies: 2, crowns: 8, evil: -1 }, -2),
+      storyChoice('Trade your medicine for the battery', 'Ellis accepts. June needs the medicine more than warmth. You leave them the shed and call Stella from the riverbank. You tell her exactly what the trade cost. The battery was not free. Neither was the guilt.', { courier: 'traded', honesty: 'open' }, { item: 'WORKING RADIO', crowns: -6, evil: 1 }, -3),
+      storyChoice('Take the battery and tell Stella the shed was empty', 'Ellis does not fight you while June is helpless. Stella welcomes your signal. When she asks if anyone else needs help, you say no. Ellis will not forget the theft.', { courier: 'abandoned', honesty: 'lie' }, { item: 'WORKING RADIO', reputation: -3, enemy: 'ELLIS', evil: 2, crowns: 4 })
     ], journey: true },
   { id: 'portrait', act: 'I // SOMEONE IS LISTENING', title: 'THE WOMAN IN THE TRANSMISSION', kind: 'radio', day: 12, region: 0, camp: true,
     objective: 'Locate Saint Agnes bell tower for the next bearing.',
@@ -58,9 +58,9 @@ const campaignBeats = [
     objective: 'Get past Rook without exposing Haven’s private channel.',
     text: () => `Rook meets you outside his camp. He has been selling false directions, then charging people to leave. "Give me your private frequency," he says, "and I give you a truck to the weather station."\n\n${state.story.courier === 'helped' ? 'Ellis slips you a note while Rook talks: THE SIDE GATE IS UNLOCKED. He remembers the heater.' : state.story.courier === 'traded' ? 'Ellis is repairing a truck under guard. He recognizes you and mouths: DO NOT TRUST HIM.' : 'Ellis is repairing a truck under guard. He recognizes you immediately. "Ask your friend on the radio what you did to June," he says.'}\n\nRook already knows your name. The frequency would let him listen to every rescue Stella coordinates.`,
     choices: [
-      storyChoice('Refuse and help Ellis open the camp’s side gate', 'Ellis cuts the lock while you distract the guards. People leave in small groups. You escape on foot with a stolen cache chart. Stella moves a rescue crew to the north fork.', { channel: 'protected' }, { item: 'NORTH FORK CACHE CHART', reputation: 4 }, -4),
-      storyChoice('Give him the channel, take the truck, then warn Stella', 'The truck gets you past the checkpoint. Stella switches frequencies, but several other travelers miss the change. "Tell me before you gamble with their safety next time." She gives you a new code anyway.', { channel: 'sold' }, { item: 'NORTH FORK CACHE CHART', reputation: -4, supplies: 3 }),
-      storyChoice('Offer your supplies instead and walk away', 'Rook takes payment for a cache chart. You keep the frequency private and send Stella the camp’s location. Ellis remains behind until her crew can reach him.', { channel: 'bought' }, { item: 'NORTH FORK CACHE CHART', supplies: -2 })
+      storyChoice('Refuse and help Ellis open the camp’s side gate', 'Ellis cuts the lock while you distract the guards. People leave in small groups. You escape on foot with a stolen cache chart and Rook’s bounty on your name. Stella moves a rescue crew to the north fork.', { channel: 'protected' }, { item: 'NORTH FORK CACHE CHART', reputation: 4, ally: 'ELLIS', enemy: 'ROOK', evil: -1, crowns: 6 }, -4),
+      storyChoice('Give him the channel, take the truck, then warn Stella', 'The truck gets you past the checkpoint, and Rook pays in gold for the frequency. Stella switches channels, but several travelers miss the change. She still gives you a new code. The gold feels heavier than the truck.', { channel: 'sold' }, { item: 'NORTH FORK CACHE CHART', reputation: -4, supplies: 3, crowns: 18, evil: 2, enemy: 'HAVEN GUIDES' }),
+      storyChoice('Offer your supplies instead and walk away', 'Rook takes payment for a cache chart. You keep the frequency private and send Stella the camp’s location. It costs water and coin. Ellis remains behind until her crew can reach him.', { channel: 'bought' }, { item: 'NORTH FORK CACHE CHART', supplies: -2, crowns: -8, reputation: 1 })
     ], journey: true },
   { id: 'truth', act: 'III // NOT EVERY LIGHT IS HOME', title: 'WHAT THE RADIO CARRIES', kind: 'radio', day: 55, region: 3, camp: true,
     objective: 'Repair trust and authenticate the weather-station signal.',
@@ -81,9 +81,9 @@ const campaignBeats = [
     objective: 'Decide how to use your verified route to Haven.',
     text: 'Below the weather station, a group of refugees waits beside a broken bus. Their radio still plays Rook’s recording. You recognize June among them. Her recovery has been slow. A medic called Nadi is rationing the last dressings.\n\nYou have a real bearing now. Stella can receive a convoy, but the climb will take coordination. Broadcasting the route openly would also let Rook follow it.',
     choices: [
-      storyChoice('Lead the refugees and keep the route on the private channel', 'Nadi helps divide the packs. June is given a place on a stretcher team. You send Stella a headcount instead of coordinates. "We are making beds," she answers.', { convoy: 'led' }, { ally: 'NADI AND THE CONVOY', reputation: 5, food: 2 }, -2),
-      storyChoice('Send their position to Stella and scout ahead alone', 'Stella dispatches guides. You leave the bearing sealed with Nadi, then go ahead to mark hazards. You are not traveling with the group, but you have not left them without a way forward.', { convoy: 'scouted' }, { reputation: 2 }),
-      storyChoice('Broadcast the entrance bearing to everyone', 'Replies flood the band: relief, disbelief, requests for help. Then you hear Rook’s transmitter repeat the bearing. Stella moves the reception point into a guarded outer shelter before anyone reaches the valley.', { convoy: 'broadcast' }, { reputation: -2 })
+      storyChoice('Lead the refugees and keep the route on the private channel', 'Nadi helps divide the packs. June is given a place on a stretcher team. You send Stella a headcount instead of coordinates. "We are making beds," she answers. Nadi slips you Haven scrip for the stretchers you carried.', { convoy: 'led' }, { ally: 'NADI AND THE CONVOY', reputation: 5, food: 2, crowns: 10, evil: -1 }, -2),
+      storyChoice('Send their position to Stella and scout ahead alone', 'Stella dispatches guides. You leave the bearing sealed with Nadi, then go ahead to mark hazards. You are not traveling with the group, but you have not left them without a way forward. A guide pays you for the marked hazards.', { convoy: 'scouted' }, { reputation: 2, ally: 'HAVEN GUIDE', crowns: 6 }),
+      storyChoice('Broadcast the entrance bearing to everyone', 'Replies flood the band: relief, disbelief, requests for help. Then you hear Rook’s transmitter repeat the bearing. Stella moves the reception point. Rook now knows the valley exists, and he knows you told him.', { convoy: 'broadcast' }, { reputation: -2, enemy: 'ROOK', evil: 1, crowns: 4 })
     ], journey: true },
   { id: 'silence', act: 'IV // THE VALLEY ON THE MAP', title: 'WHEN SHE DOES NOT ANSWER', kind: 'event', day: 84, region: 5, camp: true,
     objective: 'Use your collected clues while Stella’s transmitter is down.',
@@ -150,6 +150,7 @@ function campaignEpilogue() {
 
 function createCampaignRoute() { return buildYearRoute(); }
 function resolveCampaignScene(scene) {
+  if (scene.havenLink !== undefined && typeof resolveHavenLink === 'function') return resolveHavenLink(scene);
   if (scene.expedition) return resolveRoadScene(scene);
   if (!scene.campaignId) return scene;
   const beat = campaignBeats.find(entry => entry.id === scene.campaignId);
@@ -176,12 +177,16 @@ function renderCampaignContext(scene) {
   if ($('anomalyValue')) $('anomalyValue').textContent = region[1];
   if ($('location')) $('location').textContent = `${region[0]} · Day ${state.day} of 365`;
   const radio = $('radioMessage');
-  if (radio) radio.textContent = tidyLabel(state.story.lastRadio || 'Waiting for a verified signal.');
+  if (radio) {
+    const nextRadio = tidyLabel(state.story.lastRadio || 'Waiting for a verified signal.');
+    if (radio.textContent !== nextRadio && state.story.lastRadio && typeof playSFX === 'function') playSFX('radio');
+    radio.textContent = nextRadio;
+  }
   const clues = $('routeClues');
   if (clues) clues.textContent = (state.story.clues || []).join(' → ') || 'No verified clues yet.';
 }
 function renderCampaignBeat(scene) {
-  if (!scene.kind) return false;
+  if (!scene.kind || (Array.isArray(scene.choices) && scene.choices.length)) return false;
   const before = captureOutcome();
   if (!state.story.seen.includes(scene.id)) {
     state.story.seen.push(scene.id);

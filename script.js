@@ -6,20 +6,20 @@ const difficulties = {
 };
 
 const backgrounds = {
-  soldier: { label: 'SOLDIER', desc: 'Better combat and weapon use.', stats: { health: 10, luck: -2 } },
-  medic: { label: 'MEDIC', desc: 'Healing items and medical events stronger.', stats: { supplies: 1, radiation: -3 } },
-  scavenger: { label: 'SCAVENGER', desc: 'Improved loot and scavenging.', stats: { food: 2, materials: 3 } },
-  engineer: { label: 'ENGINEER', desc: 'Better crafting and tech interactions.', stats: { luck: 5, radiation: -2 } },
-  drifter: { label: 'DRIFTER', desc: 'Higher luck and survival bonuses.', stats: { luck: 8, odds: 5 } },
-  diplomat: { label: 'DIPLOMAT', desc: 'Improved social and negotiation.', stats: { reputation: 4, crowns: 10 } },
-  hunter: { label: 'HUNTER', desc: 'Superior tracking and ranged combat.', stats: { luck: 4, odds: 4 } },
-  nomad: { label: 'NOMAD', desc: 'Efficient travel and resource management.', stats: { supplies: 2, food: 2 } },
-  mystic: { label: 'MYSTIC', desc: 'Arcane resilience and better mutation control.', stats: { radiation: -4, odds: 6 } },
-  raider: { label: 'RAIDER', desc: 'Aggressive tactics and intimidation.', stats: { health: 8, reputation: 5, crowns: 5 } }
+  soldier: { label: 'SOLDIER', desc: 'Starts tougher, with extra water and food.', stats: { health: 12, luck: -2, supplies: 2, food: 2 } },
+  medic: { label: 'MEDIC', desc: 'Starts with more water, food, and lower radiation.', stats: { health: 6, supplies: 3, food: 3, radiation: -4 } },
+  scavenger: { label: 'SCAVENGER', desc: 'Starts with a fuller pack of water and food.', stats: { supplies: 3, food: 4, materials: 3, luck: 2 } },
+  engineer: { label: 'ENGINEER', desc: 'Starts luckier, with spare water and food.', stats: { luck: 6, radiation: -2, supplies: 2, food: 2 } },
+  drifter: { label: 'DRIFTER', desc: 'Starts luckier, with travel rations.', stats: { luck: 8, odds: 5, supplies: 2, food: 2 } },
+  diplomat: { label: 'DIPLOMAT', desc: 'Starts with reputation, gold, and extra rations.', stats: { reputation: 4, crowns: 10, supplies: 2, food: 3 } },
+  hunter: { label: 'HUNTER', desc: 'Starts with more food from the trail and extra water.', stats: { luck: 4, odds: 4, supplies: 2, food: 4 } },
+  nomad: { label: 'NOMAD', desc: 'Starts with the most water and food.', stats: { supplies: 4, food: 4, luck: 2 } },
+  mystic: { label: 'MYSTIC', desc: 'Starts with lower radiation and extra rations.', stats: { radiation: -5, odds: 6, supplies: 2, food: 2 } },
+  raider: { label: 'RAIDER', desc: 'Starts hardier, with stolen water and food.', stats: { health: 8, reputation: -2, crowns: 8, supplies: 2, food: 3 } }
 };
 
 const regions = [
-  ['THE GREENBELT', 'LOW'], ['GLASS DESERT', 'ELEVATED'], ['THE SUNKEN CITY', 'HIGH'], ['MOONFALL MARSH', 'CRITICAL'], ['ELVEN RUINS', 'ARCANE'], ['THE BONE ORCHARD', 'FERAL'], ['BLACKSTAR CRATER', 'CATASTROPHIC'], ['HAVEN APPROACH', 'STABLE']
+  ['Greenbelt', 'LOW'], ['GLASS DESERT', 'ELEVATED'], ['THE SUNKEN CITY', 'HIGH'], ['MOONFALL MARSH', 'CRITICAL'], ['ELVEN RUINS', 'ARCANE'], ['THE BONE ORCHARD', 'FERAL'], ['BLACKSTAR CRATER', 'CATASTROPHIC'], ['HAVEN APPROACH', 'STABLE']
 ];
 
 const openingQuotes = [
@@ -86,8 +86,27 @@ function playSFX(type = 'click') {
         gain.gain.linearRampToValueAtTime(0.0001, sfxContext.currentTime + 0.28);
         osc.stop(sfxContext.currentTime + 0.32);
       }, 5);
+    } else if (type === 'inventory') {
+      osc.type = 'triangle';
+      osc.frequency.value = 420;
+      gain.gain.value = 0.035;
+      filter.frequency.value = 900;
+      osc.start();
+      setTimeout(() => {
+        gain.gain.linearRampToValueAtTime(0.0001, sfxContext.currentTime + 0.08);
+        osc.stop(sfxContext.currentTime + 0.1);
+      }, 4);
+    } else if (type === 'equip') {
+      osc.type = 'sine';
+      osc.frequency.value = 620;
+      gain.gain.value = 0.04;
+      osc.start();
+      setTimeout(() => { osc.frequency.value = 880; }, 40);
+      setTimeout(() => {
+        gain.gain.linearRampToValueAtTime(0.0001, sfxContext.currentTime + 0.1);
+        osc.stop(sfxContext.currentTime + 0.12);
+      }, 4);
     } else if (type === 'typing') {
-      // soft typing noise
       osc.type = 'sine';
       osc.frequency.value = 750 + Math.random() * 150;
       gain.gain.value = 0.025;
@@ -96,8 +115,102 @@ function playSFX(type = 'click') {
         gain.gain.linearRampToValueAtTime(0.0001, sfxContext.currentTime + 0.05);
         osc.stop(sfxContext.currentTime + 0.07);
       }, 3);
+    } else if (type === 'damage') {
+      osc.type = 'square';
+      osc.frequency.value = 140;
+      gain.gain.value = 0.07;
+      filter.frequency.value = 500;
+      osc.start();
+      osc.frequency.linearRampToValueAtTime(70, sfxContext.currentTime + 0.16);
+      setTimeout(() => {
+        gain.gain.linearRampToValueAtTime(0.0001, sfxContext.currentTime + 0.2);
+        osc.stop(sfxContext.currentTime + 0.22);
+      }, 5);
+    } else if (type === 'heal') {
+      osc.type = 'sine';
+      osc.frequency.value = 520;
+      gain.gain.value = 0.045;
+      osc.start();
+      osc.frequency.linearRampToValueAtTime(780, sfxContext.currentTime + 0.16);
+      setTimeout(() => {
+        gain.gain.linearRampToValueAtTime(0.0001, sfxContext.currentTime + 0.22);
+        osc.stop(sfxContext.currentTime + 0.24);
+      }, 5);
+    } else if (type === 'ally') {
+      osc.type = 'triangle';
+      osc.frequency.value = 440;
+      gain.gain.value = 0.04;
+      osc.start();
+      setTimeout(() => { osc.frequency.value = 660; }, 90);
+      setTimeout(() => {
+        gain.gain.linearRampToValueAtTime(0.0001, sfxContext.currentTime + 0.16);
+        osc.stop(sfxContext.currentTime + 0.2);
+      }, 5);
+    } else if (type === 'lover') {
+      osc.type = 'sine';
+      osc.frequency.value = 523;
+      gain.gain.value = 0.04;
+      osc.start();
+      setTimeout(() => { osc.frequency.value = 784; }, 110);
+      setTimeout(() => {
+        gain.gain.linearRampToValueAtTime(0.0001, sfxContext.currentTime + 0.22);
+        osc.stop(sfxContext.currentTime + 0.26);
+      }, 5);
+    } else if (type === 'enemy') {
+      osc.type = 'sawtooth';
+      osc.frequency.value = 220;
+      gain.gain.value = 0.05;
+      filter.frequency.value = 700;
+      osc.start();
+      setTimeout(() => { osc.frequency.value = 146; }, 80);
+      setTimeout(() => {
+        gain.gain.linearRampToValueAtTime(0.0001, sfxContext.currentTime + 0.18);
+        osc.stop(sfxContext.currentTime + 0.22);
+      }, 5);
+    } else if (type === 'login') {
+      osc.type = 'sine';
+      osc.frequency.value = 494;
+      gain.gain.value = 0.05;
+      osc.start();
+      setTimeout(() => { osc.frequency.value = 740; }, 80);
+      setTimeout(() => { osc.frequency.value = 988; }, 160);
+      setTimeout(() => {
+        gain.gain.linearRampToValueAtTime(0.0001, sfxContext.currentTime + 0.18);
+        osc.stop(sfxContext.currentTime + 0.24);
+      }, 5);
+    } else if (type === 'radio') {
+      const seconds = 0.28;
+      const buffer = sfxContext.createBuffer(1, Math.floor(sfxContext.sampleRate * seconds), sfxContext.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
+      const noise = sfxContext.createBufferSource();
+      noise.buffer = buffer;
+      const band = sfxContext.createBiquadFilter();
+      band.type = 'bandpass';
+      band.frequency.value = 1400;
+      band.Q.value = 0.7;
+      const radioGain = sfxContext.createGain();
+      radioGain.gain.value = 0.08;
+      noise.connect(band);
+      band.connect(radioGain);
+      radioGain.connect(sfxContext.destination);
+      noise.start();
+      radioGain.gain.exponentialRampToValueAtTime(0.0001, sfxContext.currentTime + seconds);
+      return;
     }
   } catch (e) {}
+}
+
+function playOutcomeSounds(before) {
+  if (!before) return;
+  if (state.health <= 0) { playSFX('danger'); return; }
+  const added = (key) => (state[key] || []).filter((name) => !(before[key] || []).includes(name));
+  if (added('enemies').length) playSFX('enemy');
+  if (added('lovers').length) playSFX('lover');
+  else if (added('allies').length) playSFX('ally');
+  const healthDelta = Number(state.health) - Number(before.health);
+  if (healthDelta <= -1) playSFX('damage');
+  else if (healthDelta >= 1) playSFX('heal');
 }
 
 const introScenes = [
@@ -265,11 +378,41 @@ const eventScenes = [
 ];
 
 const events = [
-  ['RANDOM EVENT // RADSTORM', 'A violet storm rolls over the horizon. The sky rains warm sparks.', -5, 0, 1],
-  ['RANDOM EVENT // LUCKY FIND', 'A sealed ration tin tumbles from a collapsed kiosk. The label says: NOT FOR HUMANS.', 0, 1, 3],
-  ['RANDOM EVENT // FAERIE SWARM', 'Tiny glowing faeries orbit your pack. They steal a button and leave a silver coin.', 2, 0, 5],
-  ['RANDOM EVENT // OLD WORLD HUM', 'A buried machine wakes under your boots. Your bones vibrate with forgotten electricity.', -2, 0, -2],
-  ['RANDOM EVENT // TRAVELER', 'A masked traveler offers a trade: your compass for a charm that points to danger.', 1, 0, 2]
+  { title: 'RADSTORM', text: 'A violet storm rolls over the horizon. The sky rains warm sparks. You can wait it out, or push through before the road floods.', choices: [
+    ['Wait in the culvert', 1, 0, 0, 1, 'The sparks hiss on the concrete above you. You lose time, not skin.', {}],
+    ['Push through the sparks [INJURY RISK]', -3, 1, -6, 3, 'You make the far ridge, burned and coughing, with a tin you would have missed.', { risk: true, supplies: 1 }],
+    ['Call Stella and follow her shelter mark', 2, 0, 1, 0, 'She talks you to a drainage shed. The storm passes while you still have your water.', { reputation: 1 }],
+    ['Buy a sealed shelter hour from a storm runner', 1, 1, 2, -2, 'Gold gets you a dry hour and a clean rag for your face. The runner does not ask your name.', { gate: { crowns: 10 }, crowns: -10, radiation: -2 }]
+  ]},
+  { title: 'LUCKY FIND', text: 'A sealed ration tin tumbles from a collapsed kiosk. The label says: NOT FOR HUMANS. Something else glints under the counter.', choices: [
+    ['Take the tin', 0, 2, 0, 0, 'It tastes like metal and salt. It is still food.', { food: 2 }],
+    ['Leave it and search the counter', 1, 1, 0, 0, 'You find a clean bottle and a dull knife instead.', { supplies: 1, item: 'DULL KNIFE' }],
+    ['Walk on', 1, 0, 0, 1, 'You do not trust a label written for the old world. The road stays quiet.', { luck: 1 }]
+  ]},
+  { title: 'FAERIE SWARM', text: 'Tiny glowing faeries orbit your pack. They steal a button and leave a silver coin, then wait to see what you do.', choices: [
+    ['Offer a crumb of food', 2, -1, 0, 0, 'They take the crumb and tuck a warm charm into your cuff.', { luck: 4, item: 'FAERIE CHARM' }],
+    ['Swat them away', -1, 0, 0, 1, 'They scatter. One bites your wrist on the way out.', { radiation: 1 }],
+    ['Follow their lights off the road', 3, 0, -2, 0, 'They lead you to a dry cache, then vanish. The detour costs you water.', { supplies: 2, food: 1 }]
+  ]},
+  { title: 'OLD WORLD HUM', text: 'A buried machine wakes under your boots. Your bones vibrate with forgotten electricity. A panel is still lit.', choices: [
+    ['Shut the panel', 0, 0, 0, -1, 'The hum dies. Your teeth stop aching.', {}],
+    ['Scavenge the cell [INJURY RISK]', -2, 0, -3, 2, 'The cell is good. The shock is better. You keep the part anyway.', { risk: true, materials: 2 }],
+    ['Mark it for a later crew', 1, 0, 0, 0, 'You leave a ribbon and a note. Stella can send someone who knows the machine.', { reputation: 2 }]
+  ]},
+  { title: 'MASKED TRAVELER', text: 'A masked traveler blocks the narrow part of the road. They offer a trade: your spare water for a charm that points toward danger.', choices: [
+    ['Trade one water', 1, -1, 0, 0, 'The charm grows cold when you face a bad path. You believe it.', { luck: 3, item: 'DANGER CHARM' }],
+    ['Refuse and share a name instead', 2, 0, 0, 0, 'They nod, step aside, and tell you which fork floods after dark.', { ally: 'MASKED TRAVELER' }],
+    ['Threaten them off the road', -2, 0, 0, 0, 'They leave. You will see that mask again, and they will not offer a trade.', { enemy: 'MASKED TRAVELER', reputation: -2 }]
+  ]},
+  { title: 'A WELL STELLA DID NOT MARK', needsRadio: true, text: 'The radio crackles with a half-heard warning: the next well is clean, or it is the one Rook poisoned. The voice cuts out before you can ask which. The well is here. Your bottles are not full.', choices: [
+    ['Drink and refill', 0, 4, -4, 8, 'The water is sweet for one swallow and metallic after. You will know by morning whether the warning was real.', { risk: true, supplies: 3 }],
+    ['Mark it and keep your last mouthful', 1, 0, 0, 0, 'You leave a green thread and stay thirsty. If the well was clean, someone behind you will live because you did not empty it.', { reputation: 1 }],
+    ['Ask the next traveler what they heard', 0, -1, 0, 0, 'They swear Stella said it was safe. They also cannot repeat her cake story. You do not drink.', { suspicion: 'well' }]
+  ]},
+  { title: 'THE QUIET GREENHOUSE', rare: true, text: 'Off the marked road, glass still holds. Inside, tomatoes are growing under a dead sun. Nobody answers when you call. The door is latched from the inside.', choices: [
+    ['Leave it sealed', 2, 0, 0, 0, 'You do not open a door that locked itself. Haven can send someone who is not already this tired.', { reputation: 1 }],
+    ['Force the latch [INJURY RISK]', -2, 2, -6, 2, 'The glass cuts you. The fruit is real. So is the note on the bench: DO NOT TELL ROOK THIS STILL GROWS.', { risk: true, food: 4, item: 'HAVEN TOMATO SEED', enemy: 'ROOK' }]
+  ]}
 ];
 
 const npcCatalog = [
@@ -325,7 +468,7 @@ function defaultState() {
   return {
     story: { seen: [], clues: [] },
     runEnded: false,
-    matureContent: false,
+    matureContent: true,
     difficulty: 'survivor',
     scenario: 0,
     odds: 60,
@@ -937,6 +1080,7 @@ function handleDynamicChoice(choice) {
   renderStats();
   renderWorldState();
   showOutcomeFeedback(before);
+  playOutcomeSounds(before);
   saveGame();
 }
 
@@ -1018,17 +1162,15 @@ function renderInventory() {
   const slots = ['weapon','armor','backpack','tool','artifact','companion'];
   slots.forEach(slot => {
     const div = document.createElement('div');
-    div.style.border = '1px solid var(--line)';
-    div.style.padding = '4px';
-    div.style.fontSize = '14px';
+    div.className = 'inv-slot';
     const item = state.equipment[slot];
     const def = getItemDef(item);
-    div.innerHTML = `<strong>${slot.toUpperCase()}</strong><br>${item ? def.name : '— empty —'}`;
+    div.innerHTML = `<span>${slot}</span><strong>${item ? def.name : 'Empty'}</strong>`;
     if (item) {
       const btn = document.createElement('button');
-      btn.textContent = 'UNEQUIP';
-      btn.style.fontSize = '12px';
-      btn.onclick = () => { unequipSlot(slot); renderInventory(); };
+      btn.className = 'inv-action';
+      btn.textContent = 'Unequip';
+      btn.onclick = () => { playSFX('equip'); unequipSlot(slot); renderInventory(); };
       div.appendChild(btn);
       div.onclick = (e) => { if (e.target.tagName !== 'BUTTON') showItemDetail(item, detailEl); };
     }
@@ -1046,34 +1188,28 @@ function renderInventory() {
   });
   Object.entries(groups).forEach(([category, names]) => {
     const heading = document.createElement('div');
+    heading.className = 'inv-kicker';
     heading.textContent = category;
-    heading.style.color = '#77f4ff';
-    heading.style.marginTop = '8px';
-    heading.style.fontFamily = 'Oswald, sans-serif';
     listEl.appendChild(heading);
     names.forEach(rawName => {
     const name = String(rawName);
     const def = getItemDef(name);
     const row = document.createElement('div');
-    row.style.borderBottom = '1px dotted var(--line)';
-    row.style.padding = '4px 0';
-    row.style.cursor = 'pointer';
-    row.textContent = `${def.name} · ${def.rarity || 'Common'}`;
-    row.onclick = () => showItemDetail(name, detailEl, true);
-    // quick equip button
+    row.className = 'inv-row';
+    row.innerHTML = `<span>${def.name}</span><em>${def.rarity || 'Common'}</em>`;
+    row.onclick = () => { playSFX('inventory'); showItemDetail(name, detailEl, true); };
     if (def.slot) {
       const eq = document.createElement('button');
-      eq.textContent = 'EQUIP';
-      eq.style.marginLeft = '6px';
-      eq.style.fontSize = '12px';
-      eq.onclick = (e) => { e.stopImmediatePropagation(); equipItem(name); renderInventory(); };
+      eq.className = 'inv-action';
+      eq.textContent = 'Equip';
+      eq.onclick = (e) => { e.stopImmediatePropagation(); playSFX('equip'); equipItem(name); renderInventory(); };
       row.appendChild(eq);
     }
     listEl.appendChild(row);
     });
   });
-  if (!carried.length) listEl.textContent = 'No carried items.';
-  if (detailEl) detailEl.textContent = '';
+  if (!carried.length) listEl.innerHTML = '<div class="inv-empty">Nothing carried yet.</div>';
+  if (detailEl) detailEl.textContent = 'Select a piece of gear to read what it does.';
 }
 
 function showItemDetail(name, targetEl, canUse) {
@@ -1085,8 +1221,9 @@ function showItemDetail(name, targetEl, canUse) {
   targetEl.innerHTML = html;
   if (canUse && def.slot) {
     const b = document.createElement('button');
-    b.textContent = 'EQUIP TO ' + (def.slot || 'tool');
-    b.onclick = () => { equipItem(name); renderInventory(); };
+    b.className = 'inv-action';
+    b.textContent = 'Equip to ' + (def.slot || 'tool');
+    b.onclick = () => { playSFX('equip'); equipItem(name); renderInventory(); };
     targetEl.appendChild(b);
   }
 }
@@ -1120,7 +1257,9 @@ function applyTravelNeeds(travelDays) {
   if (state.radiation >= 70) state.radiation = clamp(state.radiation + .35 * travelDays, 0, 100);
   if (playerHasAny(['GAS MASK', 'MOONSEED CHARM'])) state.radiation = clamp(state.radiation - .2 * travelDays, 0, 100);
   if (damage) state.health = Math.max(0, state.health - damage * travelDays);
-  return { foodShortage, waterShortage, damage: damage * travelDays, radiationDrift: radiationDrift * travelDays };
+  if (foodShortage && waterShortage && state.health <= 12) state.health = 0;
+  if (state.radiation >= 98 && state.health <= 15) state.health = 0;
+  return { foodShortage, waterShortage, damage: damage * travelDays, radiationDrift: radiationDrift * travelDays, fatal: state.health <= 0 ? (foodShortage && waterShortage ? 'thirst and hunger' : state.radiation >= 98 ? 'radiation' : 'injury') : '' };
 }
 
 function playerHasAny(names) {
@@ -1308,7 +1447,7 @@ function setDifficulty(key) {
   const banner = $('eventBanner');
   if (banner) banner.hidden = true;
   const note = $('statusMessage');
-  if (note) note.textContent = `Field note. ${mode.label} run initialized. Reach Haven by day 365.`;
+  if (note) note.textContent = `${mode.label} run is ready. Reach Haven by day 365.`;
 }
 
 function renderDifficultyButtons() {
@@ -1353,7 +1492,7 @@ function renderStartingDifficulty() {
   });
 }
 
-let selectedBackground = 'NONE';
+let selectedBackground = '';
 function renderStartingBackground() {
   const container = $('startingBackground');
   if (!container) return;
@@ -1417,11 +1556,12 @@ function renderScenario() {
   state.route[state.scenario] = scene;
   state.day = scene.calendarDay || state.day;
   const [region, anomaly] = regions[clamp(state.region, 0, regions.length - 1)] || regions[0];
-  $('chapterNumber').textContent = String(state.scenario + 1).padStart(2, '0');
+  if ($('chapterNumber')) $('chapterNumber').textContent = String(state.scenario + 1).padStart(2, '0');
   $('headerDay').textContent = String(state.day).padStart(3, '0');
   $('sceneType').textContent = scene.kind ? scene.kind.replace(/^\w/, (letter) => letter.toUpperCase()) : tidyLabel(String(scene.type || 'Encounter').split('//').pop());
-  $('location').textContent = `${region} · Day ${String(state.day).padStart(3, '0')}`;
-  $('storyPanel').classList.remove('prompt-danger', 'prompt-important', 'prompt-arcane');
+  if ($('location')) $('location').textContent = `${region} · Day ${String(state.day).padStart(3, '0')}`;
+  $('storyPanel').classList.remove('prompt-danger', 'prompt-important', 'prompt-arcane', 'prompt-event');
+  if (scene.special) $('storyPanel').classList.add('prompt-event');
   if (/THREAT|BOSS|IMPOSSIBLE|MUTATION/.test(scene.type)) $('storyPanel').classList.add('prompt-danger');
   else if (/FIRST DECISION|QUEST|HAVEN GATE|SURVIVOR/.test(scene.type)) $('storyPanel').classList.add('prompt-important');
   else if (/ARCANE|ELVEN|WITCHLIGHT/.test(`${scene.type} ${scene.title}`)) $('storyPanel').classList.add('prompt-arcane');
@@ -1437,7 +1577,7 @@ function renderScenario() {
   $('regionValue').textContent = region;
   $('anomalyValue').textContent = anomaly;
   $('logLine').textContent = `Log ${String(state.scenario + 1).padStart(2, '0')} · ${difficulties[state.difficulty].label} run`;
-  $('statusMessage').textContent = scene.chain ? `Quest chain · ${scene.chain}. This choice will be remembered.` : 'Field note. The wasteland is listening.';
+  $('statusMessage').textContent = scene.chain ? `This scene is part of the ${scene.chain} story. The choice you make here will be remembered later.` : 'Read what is in front of you, then pick a path.';
   $('openingQuote').textContent = openingQuotes[Math.floor(Math.random() * openingQuotes.length)];
   renderInterlude();
   renderStats();
@@ -1449,7 +1589,7 @@ function renderScenario() {
   renderJournal();
   if (scene.campaignId) {
     $('storyInterlude').hidden = true;
-    if (renderCampaignBeat(scene)) return;
+    if (!scene.choices?.length && renderCampaignBeat(scene)) return;
   }
 
   if (scene.event) {
@@ -1473,12 +1613,13 @@ function renderScenario() {
     const label = isDynamic ? choice.label : choice[0];
     const requiredItems = isDynamic ? [] : (choice[6]?.requires || []);
     const missingItems = requiredItems.filter((item) => !state.items.includes(item) && !state.inventory.some(i => String(i).toUpperCase() === String(item).toUpperCase()));
+    const statGates = isDynamic ? [] : gateMissing(choice[6]);
     const tags = choicePressure(label);
     const blocked = tags.includes('TOO INJURED');
-    button.className = 'choice';
+    button.className = `choice ${scene.special ? 'choice--event' : ''} ${choiceTone(label)}`.trim();
     button.type = 'button';
-    button.disabled = missingItems.length > 0 || blocked || (isDynamic === false && !choice);
-    const tagText = [...(missingItems.length ? [`REQUIRES ${missingItems.join(', ')}`] : []), ...tags].join(' · ');
+    button.disabled = missingItems.length > 0 || statGates.length > 0 || blocked || (isDynamic === false && !choice);
+    const tagText = [...(missingItems.length ? [`REQUIRES ${missingItems.join(', ')}`] : []), ...(statGates.length ? [`NEED ${statGates.join(', ')}`] : []), ...tags].join(' · ');
     button.textContent = tagText ? `${label} [${tagText}]` : label;
     button.addEventListener('click', () => {
       playSFX('choice');
@@ -1504,12 +1645,21 @@ function applyEventScene(scene) {
   state.luck = Math.max(0, Math.min(100, state.luck + (effects.luck || 0)));
   state.materials = Math.max(0, state.materials + (effects.materials || 0));
   $('promptText').textContent = 'Event. No decision.';
-  $('statusMessage').textContent = 'Field note. Something happened while you were moving.';
+  $('statusMessage').textContent = 'Something happened while you were moving. There is no choice here. Read it, then continue.';
   renderStats();
   renderWorldState();
 }
 
 function nextScene() {
+  if (state.runEnded || state.scenario >= state.route.length - 1) return;
+  if (!state.pendingEvent && queueRandomEvent()) {
+    presentRandomEvent(state.pendingEvent);
+    return;
+  }
+  advanceScene();
+}
+
+function advanceScene() {
   if (state.runEnded || state.scenario >= state.route.length - 1) return;
   const left = state.route[state.scenario];
   if (left && state.sceneSnapshot && !state.journalLogged) recordJournal(left.title || 'Field', state.lastAction || 'Continue onward', summarizeChanges(state.sceneSnapshot), state.lastOutcome || '');
@@ -1565,6 +1715,7 @@ function applyStoryEffects(choice) {
   state.odds = Math.max(0, Math.min(99, state.odds + (effects.odds || 0)));
   state.luck = Math.max(0, Math.min(100, state.luck + (effects.luck || 0)));
   state.radiation = Math.max(0, Math.min(100, state.radiation + (effects.radiation || 0)));
+  if (typeof noteStoryThreads === 'function') noteStoryThreads();
   renderWorldState();
 }
 
@@ -1596,40 +1747,178 @@ function renderStats() {
   flag('luckCard', state.luck <= 30);
   const radCard = $('radCard');
   if (radCard) radCard.classList.toggle('is-alarm', state.radiation >= 70);
-  // Pulsing color indicator for survival odds (no percentage, color only)
-  const orb = $('oddsOrb');
-  if (orb) {
-    let cls = 'green';
-    if (state.odds < 25) cls = 'black';
-    else if (state.odds < 45) cls = 'red';
-    else if (state.odds < 65) cls = 'amber';
-    orb.className = `heartbeat ${cls}`;
-  }
+  updateSurvivalMonitor();
   $('headerDay').textContent = String(state.day).padStart(3, '0');
   state.previousStats = { oddsValue: state.odds, healthValue: state.health, radiationValue: state.radiation, suppliesValue: state.supplies, foodValue: state.food, luckValue: state.luck };
 }
 
+function regionDanger() {
+  const anomaly = (regions[clamp(state.region || 0, 0, regions.length - 1)] || regions[0])[1];
+  return { LOW: 4, STABLE: 2, ELEVATED: 10, HIGH: 16, CRITICAL: 24, ARCANE: 14, FERAL: 20, CATASTROPHIC: 30 }[anomaly] || 8;
+}
+
+function calculateSurvivalRate() {
+  const health = clamp(Number(state.health) || 0, 0, 100);
+  const rad = clamp(Number(state.radiation) || 0, 0, 100);
+  const water = clamp(Number(state.supplies) || 0, 0, 12);
+  const food = clamp(Number(state.food) || 0, 0, 12);
+  const luck = clamp(Number(state.luck) || 0, 0, 100);
+  const odds = clamp(Number(state.odds) || 0, 0, 99);
+  let rate = health * 0.42 + odds * 0.22 + (Math.min(water, 6) / 6) * 14 + (Math.min(food, 6) / 6) * 12 + luck * 0.06;
+  rate -= rad < 40 ? rad * 0.08 : 3.2 + (rad - 40) * 0.32;
+  rate -= regionDanger() * 0.4;
+  rate -= Math.min((state.enemies || []).length, 4) * 2;
+  if (state.pendingEvent) rate -= 5;
+  if (state.mutationActive) rate -= 4;
+  if (!state.base || state.base === 'NONE') rate -= 3;
+  if (state.story && state.story.rook === 'sold') rate -= 6;
+  if (state.story && (state.story.echoes || []).some((echo) => !echo.fired && echo.kind === 'rook')) rate -= 4;
+  const stacked = [health < 40, water <= 1, food <= 1, rad >= 70].filter(Boolean).length;
+  if (stacked >= 2) rate -= 7 * (stacked - 1);
+  if (stacked >= 3) rate -= 8;
+  return Math.round(clamp(rate, 0, 100));
+}
+
+function survivalColor(rate) {
+  const stops = [[0, [8, 6, 6]], [9, [92, 18, 18]], [24, [168, 36, 28]], [44, [132, 132, 132]], [69, [168, 255, 96]], [100, [168, 255, 96]]];
+  let index = 0;
+  while (index < stops.length - 1 && rate > stops[index + 1][0]) index += 1;
+  const [fromValue, from] = stops[index];
+  const [toValue, to] = stops[Math.min(index + 1, stops.length - 1)];
+  const span = Math.max(1, toValue - fromValue);
+  const mix = clamp((rate - fromValue) / span, 0, 1);
+  const rgb = from.map((channel, i) => Math.round(channel + (to[i] - channel) * mix));
+  return `rgb(${rgb.join(',')})`;
+}
+
+function updateSurvivalMonitor() {
+  const monitor = $('oddsOrb');
+  if (!monitor) return;
+  const rate = calculateSurvivalRate();
+  state.survivalRate = rate;
+  const color = survivalColor(rate);
+  const card = monitor.closest('.status-card');
+  monitor.style.setProperty('--sr', `${Math.max(rate, 3)}%`);
+  monitor.style.setProperty('--sr-color', color);
+  monitor.style.setProperty('--sr-edge', rate < 10 ? 'rgb(110, 28, 28)' : color);
+  if (card) card.style.setProperty('--sr-color', color);
+  monitor.setAttribute('aria-valuenow', String(rate));
+  monitor.dataset.tension = rate >= 70 ? 'high' : rate >= 45 ? 'mid' : rate >= 25 ? 'low' : 'critical';
+}
+
+function gateMissing(effects) {
+  const gate = effects && effects.gate;
+  if (!gate) return [];
+  const missing = [];
+  if (gate.health && state.health < gate.health) missing.push(`${gate.health} HEALTH`);
+  if (gate.luck && state.luck < gate.luck) missing.push(`${gate.luck} LUCK`);
+  if (gate.crowns && (state.crowns || 0) < gate.crowns) missing.push(`${gate.crowns} GOLD`);
+  if (gate.supplies && state.supplies < gate.supplies) missing.push(`${gate.supplies} WATER`);
+  if (gate.food && state.food < gate.food) missing.push(`${gate.food} FOOD`);
+  if (gate.reputation && (state.reputation || 0) < gate.reputation) missing.push(`${gate.reputation} REPUTATION`);
+  if (gate.radiationMax != null && state.radiation > gate.radiationMax) missing.push(`RAD AT ${gate.radiationMax} OR LOWER`);
+  return missing;
+}
+
+function choiceTone(label) {
+  const text = String(label || '').toLowerCase();
+  if (/injury risk|dangerous|high risk/.test(text)) return 'choice--risk';
+  if (/treat|heal|injur|decontaminat|rest|medic|bandage|surgery/.test(text)) return 'choice--care';
+  return '';
+}
+
 function maybeEvent() {
-  if (state.lastEvent || state.eventCooldown > 0 || Math.random() > 0.35) {
+  return null;
+}
+
+function queueRandomEvent() {
+  if (state.pendingEvent || state.runEnded || state.day >= 365) return false;
+  if (state.lastEvent || state.eventCooldown > 0 || Math.random() > 0.42) {
     state.eventCooldown = Math.max(0, state.eventCooldown - 1);
-    return null;
+    return false;
   }
-  const event = events[Math.floor(Math.random() * events.length)];
+  const fitting = events.filter((event) => {
+    if (event.needsRadio && !(typeof playerHasAny === 'function' && playerHasAny(['WORKING RADIO']))) return false;
+    if (event.rare && Math.random() > 0.12) return false;
+    return true;
+  });
+  if (!fitting.length) return false;
+  state.pendingEvent = fitting[Math.floor(Math.random() * fitting.length)];
   state.lastEvent = true;
-  state.eventCooldown = 1 + Math.floor(Math.random() * 3);
-  state.odds = Math.max(0, Math.min(99, state.odds + event[2]));
-  state.supplies = Math.max(0, state.supplies + event[3]);
-  state.luck = Math.max(0, Math.min(100, state.luck + event[4]));
-  $('eventBanner').hidden = true;
+  state.eventCooldown = 2 + Math.floor(Math.random() * 2);
+  return true;
+}
+
+function presentRandomEvent(scene) {
+  state.choiceResolved = false;
+  $('storyPanel').classList.add('prompt-event');
+  $('sceneTitle').textContent = scene.title;
+  if ($('sceneType')) $('sceneType').textContent = 'Random event';
+  setSceneText(scene.text);
+  $('promptText').textContent = 'A random event stops you between days. What do you do?';
+  $('choices').innerHTML = '';
+  const visibleChoices = scene.choices.filter((choice) => !/call stella/i.test(choice[0]) || (typeof playerHasAny === 'function' && playerHasAny(['WORKING RADIO'])));
+  visibleChoices.forEach((choice, index) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    const locked = gateMissing(choice[6]);
+    button.className = `choice choice--event ${choiceTone(choice[0])}`.trim();
+    button.disabled = locked.length > 0;
+    button.textContent = locked.length ? `${choice[0]} [NEED ${locked.join(', ')}]` : choice[0];
+    button.addEventListener('click', () => { if (!button.disabled) resolveRandomEvent(index); });
+    $('choices').appendChild(button);
+  });
+}
+
+function resolveRandomEvent(index) {
+  const scene = state.pendingEvent;
+  if (!scene || state.choiceResolved) return;
+  const visibleChoices = scene.choices.filter((entry) => !/call stella/i.test(entry[0]) || (typeof playerHasAny === 'function' && playerHasAny(['WORKING RADIO'])));
+  const choice = visibleChoices[index];
+  if (!choice || gateMissing(choice[6]).length) return;
+  state.choiceResolved = true;
+  const before = captureOutcome();
+  state.lastAction = choice[0];
+  state.odds = clamp(state.odds + (choice[1] || 0), 0, 99);
+  state.supplies = Math.max(0, state.supplies + (choice[2] || 0));
+  state.health = clamp(state.health + (choice[3] || 0), 0, 100);
+  state.radiation = clamp(state.radiation + (choice[4] || 0), 0, 100);
+  applyStoryEffects(choice);
+  const riskNote = resolveTravelRisk(choice);
+  const result = `${choice[5] || 'You deal with it.'}${riskNote}`;
+  state.lastOutcome = result;
+  recordJournal(scene.title, choice[0], summarizeChanges(before), result);
+  setSceneText(result);
+  $('promptText').textContent = 'The interruption passes.';
+  $('choices').innerHTML = '';
   renderStats();
-  return event;
+  renderWorldState();
+  showOutcomeFeedback(before);
+  playOutcomeSounds(before);
+  saveGame();
+  if (state.health <= 0) {
+    state.pendingEvent = null;
+    $('storyPanel').classList.remove('prompt-event');
+    showEnding(false, { title: 'THE ROAD TAKES ITS DUE', text: result });
+    return;
+  }
+  const next = document.createElement('button');
+  next.className = 'choice choice--event';
+  next.type = 'button';
+  next.textContent = 'Continue to the next day';
+  next.addEventListener('click', () => {
+    state.pendingEvent = null;
+    $('storyPanel').classList.remove('prompt-event');
+    advanceScene();
+  });
+  $('choices').appendChild(next);
 }
 
 function choose(index) {
   if (state.runEnded || state.choiceResolved) return;
   const choiceList = state.route[state.scenario].choices;
   const choice = choiceList[index];
-  if (!choice) return;
+  if (!choice || gateMissing(choice[6]).length) return;
   state.choiceResolved = true;
   state.lastAction = choice[0];
   const before = captureOutcome();
@@ -1657,7 +1946,7 @@ function choose(index) {
   applyStoryEffects(choice);
   const needs = applyTravelNeeds(travelDays);
   document.querySelectorAll('.choice').forEach((button) => { button.disabled = true; });
-  const randomEvent = (state.route[state.scenario].campaignId || state.route[state.scenario].special) ? null : maybeEvent();
+  const randomEvent = null;
   const pressureNote = applyConditionPressure(choice[0]);
   const riskNote = resolveTravelRisk(choice) + (pressureNote ? ' ' + pressureNote : '');
   const radiationResult = state.health > 0 ? resolveRadiationThreshold() : {status: 'death'};
@@ -1671,13 +1960,16 @@ function choose(index) {
   renderStats();
   renderWorldState();
   showOutcomeFeedback(before);
+  playOutcomeSounds(before);
   renderCampaignContext(currentScene);
-  const shortageNote = needs.damage ? ` Shortage damage: -${needs.damage} health.` : '';
-  $('statusMessage').textContent = `Field note. ${travelDays ? '1 day of travel' : 'Rest and conversation'}. Day ${state.day} of 365. ${formatRations(state.supplies)} water, ${formatRations(state.food)} food, ${state.radiation.toFixed(1)} rad, ${state.health} health.${shortageNote}`;
+  const shortageNote = needs.damage ? ` You were short on supplies and lost ${needs.damage} health.` : '';
+  const travelLine = travelDays ? 'A day of travel has passed.' : 'You rested and talked. This did not spend travel supplies.';
+  $('statusMessage').textContent = `${travelLine} Day ${state.day} of 365. Health ${state.health}. Radiation ${Number(state.radiation).toFixed(1)}. Water ${formatRations(state.supplies)}. Food ${formatRations(state.food)}.${shortageNote}`;
   saveGame();
   if (radiationResult.status === 'death' || state.health <= 0) {
     state.sceneSnapshot = null;
-    showEnding(false, {title: riskNote ? 'THE SEARCH THAT COST EVERYTHING' : 'THE ROAD TAKES ITS DUE', text: choiceResult + (radiationResult.message ? '\n\n' + radiationResult.message : '')});
+    const cause = needs.fatal === 'thirst and hunger' ? 'You kept moving after the water and food were already gone.' : needs.fatal === 'radiation' ? 'The contamination finished what the road started.' : 'The wounds and the shortage finally outweighed the will to continue.';
+    showEnding(false, {title: riskNote ? 'THE SEARCH THAT COST EVERYTHING' : 'THE ROAD TAKES ITS DUE', text: choiceResult + '\n\n' + cause + (radiationResult.message ? '\n\n' + radiationResult.message : '')});
     return;
   }
   // The campaign resolves at its epilogue, not in the middle of a choice.
@@ -1711,7 +2003,7 @@ function showEnding(reached365 = false, death = null) {
   $('storyPanel').classList.toggle('outcome', true);
   $('storyPanel').classList.toggle('outcome--win', survived);
   $('logLine').textContent = survived ? 'Run complete. Haven reached.' : 'Run complete. Signal lost.';
-  $('statusMessage').textContent = survived ? 'Field note. Clean water. A safe room. You are home.' : 'Field note. Health reached zero. The run is over.';
+  $('statusMessage').textContent = survived ? 'You made it. Haven has clean water and a safe room.' : 'Your health reached zero. This run is over.';
 }
 
 function toggleSound() {
@@ -1922,6 +2214,7 @@ async function handleLogin() {
     for (let i = 0; i < emails.length; i++) {
       try {
         await window.AfterlightAuth.login(emails[i], pass);
+        playSFX('login');
         return;
       } catch (err) {
         last = err;
@@ -1942,11 +2235,17 @@ async function handleCreate() {
   if (!usernameKey(username)) { showAuthError('create', 'Use a username with letters or numbers.'); return; }
   if (p1.length < 6) { showAuthError('create', 'Password must be at least 6 characters. That limit is enforced by the sign-in service.'); return; }
   if (p1 !== p2) { showAuthError('create', 'Passwords do not match.'); return; }
-  await withAuthButton($('createBtn'), 'create', () => window.AfterlightAuth.createAccount(usernameEmails(username)[0], p1));
+  await withAuthButton($('createBtn'), 'create', async () => {
+    await window.AfterlightAuth.createAccount(usernameEmails(username)[0], p1);
+    playSFX('login');
+  });
 }
 
 async function handleGuest() {
-  await withAuthButton($('playGuest'), 'login', () => window.AfterlightAuth.loginGuest());
+  await withAuthButton($('playGuest'), 'login', async () => {
+    await window.AfterlightAuth.loginGuest();
+    playSFX('login');
+  });
 }
 
 function updateUserChrome(user) {
@@ -2028,8 +2327,12 @@ if ($('startGameBtn')) $('startGameBtn').addEventListener('click', () => {
     $('survivorName').focus();
     return;
   }
+  if (!backgrounds[selectedBackground]) {
+    if (setupError) { setupError.hidden = false; setupError.textContent = 'Choose a background before you enter the wasteland.'; }
+    return;
+  }
   if (setupError) setupError.hidden = true;
-  const chosenBackground = selectedBackground || 'NONE';
+  const chosenBackground = selectedBackground;
   const activeButton = $('startingDifficulty').querySelector('.is-active');
   const selectedDifficulty = Object.entries(difficulties).find(([, mode]) => mode.label === activeButton?.textContent)?.[0];
   state.difficulty = selectedDifficulty || state.difficulty;
@@ -2080,12 +2383,20 @@ if (window.AfterlightAuth && typeof window.AfterlightAuth.onAuthStateChanged ===
 
 // Wire restart button (was missing listener)
 if ($('restartButton')) $('restartButton').addEventListener('click', restart);
-if ($('simpleViewButton')) $('simpleViewButton').addEventListener('click', () => {
+if ($('confirmRestart')) $('confirmRestart').addEventListener('click', () => { playSFX('click'); confirmRestart(); });
+if ($('cancelRestart')) $('cancelRestart').addEventListener('click', () => { playSFX('click'); const panel = $('restartPanel'); if (panel && panel.open) panel.close(); });
+if ($('journalPanel')) $('journalPanel').addEventListener('toggle', () => playSFX('click'));
+if ($('simpleViewButton')) $('simpleViewButton').addEventListener('click', () => { playSFX('click');
   const on = document.body.classList.toggle('simple-view');
   $('simpleViewButton').textContent = on ? 'FULL VIEW' : 'SIMPLE VIEW';
   $('simpleViewButton').setAttribute('aria-pressed', String(on));
 });
-if ($('intelTab')) $('intelTab').addEventListener('click', () => {
+if ($('restartButton')) $('restartButton').addEventListener('click', () => playSFX('click'));
+if ($('tutorialButton')) $('tutorialButton').addEventListener('click', () => playSFX('click'));
+if ($('matureButton')) $('matureButton').addEventListener('click', () => playSFX('click'));
+if ($('closeInventory')) $('closeInventory').addEventListener('click', () => playSFX('click'));
+if ($('closeTutorial')) $('closeTutorial').addEventListener('click', () => playSFX('click'));
+if ($('intelTab')) $('intelTab').addEventListener('click', () => { playSFX('click');
   const panel = $('intelPanel');
   if (!panel) return;
   panel.hidden = !panel.hidden;
@@ -2099,7 +2410,7 @@ if ($('logoutButton')) $('logoutButton').addEventListener('click', async () => {
 });
 
 // Wire upper GUI buttons
-if ($('inventoryButton')) $('inventoryButton').addEventListener('click', () => toggleInventory());
+if ($('inventoryButton')) $('inventoryButton').addEventListener('click', () => { playSFX('inventory'); toggleInventory(); });
 if ($('tutorialButton')) $('tutorialButton').addEventListener('click', () => toggleTutorial());
 if ($('soundButton')) $('soundButton').addEventListener('click', toggleSound);
 if ($('matureButton')) $('matureButton').addEventListener('click', toggleMature);
@@ -2123,14 +2434,22 @@ if (initSoundBtn) {
 // Update restart to keep auth but clear current run save + return to setup
 // (logout is separate and does not clear saves)
 function restart() {
-  if (typeof confirm === 'function' && !confirm('Restart the run? Current progress will be lost.')) return;
-  const pid = getCurrentPlayerId();
-  if (pid) {
-    localStorage.removeItem(getUserSaveKey());
+  const panel = $('restartPanel');
+  if (panel && typeof panel.showModal === 'function') {
+    if (!panel.open) panel.showModal();
+    return;
   }
+  confirmRestart();
+}
+
+function confirmRestart() {
+  const panel = $('restartPanel');
+  if (panel && panel.open) panel.close();
+  const pid = getCurrentPlayerId();
+  if (pid) localStorage.removeItem(getUserSaveKey());
   state = defaultState();
   $('startScreen').hidden = false;
-  showGameSetup(); // stay logged in, just new run setup
+  showGameSetup();
 }
 
 // end auth system
