@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=3">
+  <link rel="stylesheet" href="style.css?v=4">
 </head>
 <body>
   <section class="start-screen" id="startScreen" aria-labelledby="briefingTitle">
@@ -18,23 +18,24 @@
 
       <!-- Account UI -->
       <div id="accountSection">
-        <div id="loginForm">
+        <div id="authLoading" style="padding: 12px 0; font-size:13px; color:#a8ff60; opacity:0.8;">ESTABLISHING SECURE LINK TO THE WASTES...</div>
+        <div id="loginForm" hidden>
           <h3 style="font-size:22px;margin:12px 0; color:#a8ff60;">LOGIN TO YOUR RUN</h3>
           <input id="loginUser" placeholder="Username" style="width:90%;margin:6px;padding:10px;background:#0a120e;border:1px solid var(--line);color:#a8ff60; font-size:16px;">
           <input id="loginPass" type="password" placeholder="Password" style="width:90%;margin:6px;padding:10px;background:#0a120e;border:1px solid var(--line);color:#a8ff60; font-size:16px;">
           <button class="start-button" id="loginBtn" style="width:90%;margin:12px 0; font-size:14px;">LOGIN &amp; CONTINUE</button>
           <div style="font-size:13px;margin:8px;">
-            <a href="#" id="showCreate" style="color:#77f4ff;">Create new account</a> &nbsp; | &nbsp; 
-            <a href="#" id="playGuest" style="color:#77f4ff;">Play as Guest (no save)</a>
+            <a href="#" id="showCreate" class="text-link" onclick="showCreate(); return false;">Create new account</a> &nbsp; | &nbsp; 
+            <a href="#" id="playGuest" class="text-link" onclick="handleGuest(); return false;">Play as Guest</a>
           </div>
         </div>
         <div id="createForm" hidden>
           <h3 style="font-size:22px;margin:12px 0; color:#a8ff60;">CREATE ACCOUNT</h3>
-          <input id="createUser" placeholder="Choose username" style="width:90%;margin:6px;padding:10px;background:#0a120e;border:1px solid var(--line);color:#a8ff60; font-size:16px;">
+          <input id="createUser" placeholder="Username" style="width:90%;margin:6px;padding:10px;background:#0a120e;border:1px solid var(--line);color:#a8ff60; font-size:16px;">
           <input id="createPass" type="password" placeholder="Password" style="width:90%;margin:6px;padding:10px;background:#0a120e;border:1px solid var(--line);color:#a8ff60; font-size:16px;">
           <input id="createPass2" type="password" placeholder="Confirm password" style="width:90%;margin:6px;padding:10px;background:#0a120e;border:1px solid var(--line);color:#a8ff60; font-size:16px;">
           <button class="start-button" id="createBtn" style="width:90%;margin:12px 0; font-size:14px;">CREATE &amp; START</button>
-          <div style="font-size:13px;"><a href="#" id="showLogin" style="color:#77f4ff;">Back to login</a></div>
+          <div style="font-size:13px;"><a href="#" id="showLogin" class="text-link" onclick="showLogin(); return false;">Back to login</a></div>
         </div>
       </div>
 
@@ -48,7 +49,7 @@
           <label class="difficulty-label" style="font-size:14px;">BACKGROUND</label>
           <div class="difficulty-buttons" id="startingBackground"></div>
         </div>
-        <button class="start-button" id="startGameBtn" style="margin-top:12px;width:90%;font-size:14px;">ENTER THE WASTES</button>
+          <button class="start-button" id="startGameBtn" style="margin-top:12px;width:90%;font-size:14px;">ENTER THE WASTELAND</button>
         <div style="font-size:11px;margin-top:8px;opacity:0.7;">Simple survival. Make choices. Reach Haven.</div>
       </div>
     </div>
@@ -57,7 +58,7 @@
     <header class="topbar">
       <div class="brand"><span class="brand-mark">A/</span><span>AFTERLIGHT</span></div>
       <div class="chapter-label">FIELD LOG <span id="chapterNumber">01</span> // DAY <span id="headerDay">01</span></div>
-      <div class="top-actions"><button id="inventoryButton" class="top-button" type="button">INVENTORY</button><button id="matureButton" class="top-button" type="button" aria-pressed="false" title="Enable more detailed non-explicit romance and graphic horror in upcoming scenes">MATURE TEXT: OFF</button><button id="tutorialButton" class="top-button" type="button" aria-haspopup="dialog" aria-controls="tutorialPanel" aria-expanded="false">TUTORIAL</button><button id="soundButton" class="top-button" type="button" aria-pressed="false">SOUND: OFF</button></div>
+      <div class="top-actions"><button id="inventoryButton" class="top-button" type="button">INVENTORY</button><button id="matureButton" class="top-button" type="button" aria-pressed="false" title="Enable more detailed non-explicit romance and graphic horror in upcoming scenes">MATURE TEXT: OFF</button><button id="tutorialButton" class="top-button" type="button" aria-haspopup="dialog" aria-controls="tutorialPanel" aria-expanded="false">TUTORIAL</button><button id="soundButton" class="top-button" type="button" aria-pressed="false">SOUND: OFF</button><button id="logoutButton" class="top-button" type="button" style="display:none;">LOGOUT</button><span id="userStatus" style="font-size:9px;opacity:0.6;margin-left:6px;"></span></div>
     </header>
 
     <section class="intro-panel" aria-labelledby="gameTitle" style="display:none;">
@@ -212,6 +213,14 @@
     <footer class="footer"><span id="logLine">LOG 01 // MAKE YOUR FIRST CALL</span><div class="footer-actions"><div class="contact-links"><span class="contact-name">EVAN BARTKOWSKI</span><a href="mailto:evan.bartkowski@icloud.com">EMAIL</a><a href="https://www.linkedin.com/in/evan-bartkowski-31274b299/" target="_blank" rel="noreferrer">LINKEDIN</a><a href="https://github.com/evanbartkowski" target="_blank" rel="noreferrer">GITHUB</a></div><button id="restartButton" class="restart-button" type="button">RESTART RUN <span>↻</span></button></div></footer>
   </main>
   <audio id="backgroundMusic" preload="auto" aria-hidden="true"></audio>
+
+  <!-- Firebase (compat CDN for vanilla static site - no bundler) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <!-- Optional: Analytics -->
+  <!-- <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics-compat.js"></script> -->
+  <script src="auth.js"></script>
+
   <script src="campaign.js"></script>
   <script src="expansion.js"></script>
   <script src="journey.js"></script>

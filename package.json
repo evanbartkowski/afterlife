@@ -1,0 +1,10 @@
+{
+  "name": "afterlight",
+  "version": "0.1.0",
+  "description": "Afterlight: A post-apocalyptic survival browser game",
+  "scripts": {
+    "dev": "npx --yes http-server -p 8000 --cors -o index.html",
+    "start": "npm run dev"
+  },
+  "private": true
+}

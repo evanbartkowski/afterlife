@@ -13,11 +13,11 @@ Your last shelter is gone. Stella, a rescue radio operator broadcasting from Hav
    cd afterlife
    ```
 
-2. Open `index.html` in a modern browser. Keep the JavaScript, stylesheet, `media`, and `music` files in their original locations.
-3. Read the opening transmissions, enter your survivor's name, and select a difficulty.
-4. Choose **Enter the Wastes** to begin.
+2. For Firebase auth (recommended): `npm run dev` (or `npx --yes http-server -p 8000 --cors -o index.html`)
+   - Then open the served URL (http://127.0.0.1:8000).
+3. Direct file open (index.html) works for basic play but Firebase auth + persistence works best over HTTP.
 
-No build step, package installation, or server is required to play. The game uses HTML, CSS, and JavaScript. Google Fonts requires an internet connection; local artwork and music are included in the repository. Repository access is required to clone or download a private copy.
+The game uses HTML, CSS, and JavaScript. Google Fonts + Firebase CDN require internet.
 
 ## How a run works
 

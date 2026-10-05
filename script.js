@@ -11,7 +11,11 @@ const backgrounds = {
   scavenger: { label: 'SCAVENGER', desc: 'Improved loot and scavenging.', stats: { food: 2, materials: 3 } },
   engineer: { label: 'ENGINEER', desc: 'Better crafting and tech interactions.', stats: { luck: 5, radiation: -2 } },
   drifter: { label: 'DRIFTER', desc: 'Higher luck and survival bonuses.', stats: { luck: 8, odds: 5 } },
-  diplomat: { label: 'DIPLOMAT', desc: 'Improved social and negotiation.', stats: { reputation: 4, crowns: 10 } }
+  diplomat: { label: 'DIPLOMAT', desc: 'Improved social and negotiation.', stats: { reputation: 4, crowns: 10 } },
+  hunter: { label: 'HUNTER', desc: 'Superior tracking and ranged combat.', stats: { luck: 4, odds: 4 } },
+  nomad: { label: 'NOMAD', desc: 'Efficient travel and resource management.', stats: { supplies: 2, food: 2 } },
+  mystic: { label: 'MYSTIC', desc: 'Arcane resilience and better mutation control.', stats: { radiation: -4, odds: 6 } },
+  raider: { label: 'RAIDER', desc: 'Aggressive tactics and intimidation.', stats: { health: 8, reputation: 5, crowns: 5 } }
 };
 
 const regions = [
@@ -40,44 +44,58 @@ function playSFX(type = 'click') {
     osc.connect(filter);
     filter.connect(gain);
     gain.connect(sfxContext.destination);
-    gain.gain.value = 0.08;
     filter.type = 'lowpass';
     filter.frequency.value = 1200;
     if (type === 'click') {
-      osc.type = 'square';
-      osc.frequency.value = 650;
+      // soft pleasant click
+      osc.type = 'sine';
+      osc.frequency.value = 900;
+      gain.gain.value = 0.04;
       osc.start();
       setTimeout(() => {
-        gain.gain.linearRampToValueAtTime(0.0001, sfxContext.currentTime + 0.06);
-        osc.stop(sfxContext.currentTime + 0.08);
+        gain.gain.linearRampToValueAtTime(0.0001, sfxContext.currentTime + 0.08);
+        osc.stop(sfxContext.currentTime + 0.1);
       }, 5);
     } else if (type === 'choice') {
-      osc.type = 'sawtooth';
-      osc.frequency.value = 420;
-      gain.gain.value = 0.06;
+      // soft choice sound
+      osc.type = 'triangle';
+      osc.frequency.value = 650;
+      gain.gain.value = 0.035;
       osc.start();
       setTimeout(() => {
-        gain.gain.linearRampToValueAtTime(0.0001, sfxContext.currentTime + 0.12);
-        osc.stop(sfxContext.currentTime + 0.15);
+        gain.gain.linearRampToValueAtTime(0.0001, sfxContext.currentTime + 0.1);
+        osc.stop(sfxContext.currentTime + 0.12);
       }, 5);
     } else if (type === 'success') {
       osc.type = 'sine';
       osc.frequency.value = 880;
+      gain.gain.value = 0.05;
       osc.start();
-      setTimeout(() => { osc.frequency.value = 1100; }, 40);
+      setTimeout(() => { osc.frequency.value = 1100; }, 30);
       setTimeout(() => {
-        gain.gain.linearRampToValueAtTime(0.0001, sfxContext.currentTime + 0.2);
-        osc.stop(sfxContext.currentTime + 0.25);
+        gain.gain.linearRampToValueAtTime(0.0001, sfxContext.currentTime + 0.18);
+        osc.stop(sfxContext.currentTime + 0.22);
       }, 5);
     } else if (type === 'danger') {
+      // harsh for bad
       osc.type = 'sawtooth';
       osc.frequency.value = 180;
-      gain.gain.value = 0.1;
+      gain.gain.value = 0.12;
       osc.start();
       setTimeout(() => {
-        gain.gain.linearRampToValueAtTime(0.0001, sfxContext.currentTime + 0.25);
-        osc.stop(sfxContext.currentTime + 0.3);
+        gain.gain.linearRampToValueAtTime(0.0001, sfxContext.currentTime + 0.28);
+        osc.stop(sfxContext.currentTime + 0.32);
       }, 5);
+    } else if (type === 'typing') {
+      // soft typing noise
+      osc.type = 'sine';
+      osc.frequency.value = 750 + Math.random() * 150;
+      gain.gain.value = 0.025;
+      osc.start();
+      setTimeout(() => {
+        gain.gain.linearRampToValueAtTime(0.0001, sfxContext.currentTime + 0.05);
+        osc.stop(sfxContext.currentTime + 0.07);
+      }, 3);
     }
   } catch (e) {}
 }
@@ -471,43 +489,17 @@ function hydrateState(rawState) {
 }
 
 const SAVE_KEY = 'afterlight-save-v2';
-const ACCOUNTS_KEY = 'afterlight-accounts';
 
-let currentUser = null;
-
-function getAccounts() {
-  try {
-    return JSON.parse(localStorage.getItem(ACCOUNTS_KEY) || '{}');
-  } catch { return {}; }
-}
-function saveAccounts(accounts) {
-  localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(accounts));
-}
-
-function hashPass(pw) {
-  return btoa(pw || ''); // simple for demo
-}
-
-function createAccount(username, password) {
-  const accs = getAccounts();
-  const u = (username || '').trim().toLowerCase();
-  if (!u || !password || accs[u]) return false;
-  accs[u] = { pass: hashPass(password), save: null };
-  saveAccounts(accs);
-  currentUser = u;
-  return true;
-}
-
-function loginAccount(username, password) {
-  const accs = getAccounts();
-  const u = (username || '').trim().toLowerCase();
-  if (!accs[u] || accs[u].pass !== hashPass(password)) return false;
-  currentUser = u;
-  return true;
+function getCurrentPlayerId() {
+  if (window.AfterlightAuth && typeof window.AfterlightAuth.getCurrentPlayerId === 'function') {
+    return window.AfterlightAuth.getCurrentPlayerId();
+  }
+  return null;
 }
 
 function getUserSaveKey() {
-  return currentUser ? `afterlight-save-${currentUser}` : SAVE_KEY;
+  const id = getCurrentPlayerId();
+  return id ? `afterlight-save-${id}` : SAVE_KEY;
 }
 
 function loadGame() {
@@ -526,20 +518,24 @@ function loadGame() {
 }
 
 let state = defaultState();
-// Do not auto-load here; the new account/login system handles per-user loading
-// Migration will happen on login or guest start if needed
-const hasValidSave = () => {
-  try {
-    const raw = localStorage.getItem(SAVE_KEY);
-    if (!raw) return false;
-    const p = JSON.parse(raw);
-    return p && !p.runEnded && (p.day || 1) < 365;
-  } catch { return false; }
-};
+
 const $ = (id) => document.getElementById(id);
 
+function setSceneText(text) {
+  const el = $('sceneText');
+  if (!el) return;
+  el.style.transition = 'opacity 0.2s ease';
+  el.style.opacity = '0';
+  playSFX('typing');
+  setTimeout(() => {
+    el.textContent = text;
+    el.style.opacity = '1';
+  }, 120);
+}
+
 function saveGame() {
-  if (!currentUser) return; // guest mode: no save
+  const playerId = getCurrentPlayerId();
+  if (!playerId) return;
   try {
     const key = getUserSaveKey();
     const saveData = JSON.stringify({
@@ -552,14 +548,7 @@ function saveGame() {
       relationshipMap: state.relationshipMap || {}
     });
     localStorage.setItem(key, saveData);
-    // also store in account if logged in
-    if (currentUser) {
-      const accs = getAccounts();
-      if (accs[currentUser]) {
-        accs[currentUser].save = saveData;
-        saveAccounts(accs);
-      }
-    }
+    // Per-Firebase-UID saves. Ready for Firestore replacement later.
   } catch (error) {
     console.warn('Unable to save game state.', error);
   }
@@ -1177,14 +1166,16 @@ function renderDifficultyButtons() {
 }
 
 function renderStartingDifficulty() {
-  $('startingDifficulty').innerHTML = '';
+  const el = $('startingDifficulty');
+  if (!el) return;
+  el.innerHTML = '';
   Object.entries(difficulties).forEach(([key, mode]) => {
     const button = document.createElement('button');
     button.className = `difficulty-button ${key === state.difficulty ? 'is-active' : ''}`;
     button.textContent = mode.label;
     button.type = 'button';
     button.addEventListener('click', () => { playSFX('click'); state.difficulty = key; renderStartingDifficulty(); });
-    $('startingDifficulty').appendChild(button);
+    el.appendChild(button);
   });
 }
 
@@ -1205,7 +1196,7 @@ function renderStartingBackground() {
 }
 
 function showInlineContinue(text) {
-  $('sceneText').textContent = text;
+  setSceneText(text);
   $('choices').innerHTML = '';
   const next = document.createElement('button');
   next.className = 'choice';
@@ -1265,7 +1256,7 @@ function renderScenario() {
     $('specialEventBadge').textContent = scene.tone==='danger' ? 'SURVIVAL CRISIS // HIGH IMPACT' : 'RARE EVENT // HIGH IMPACT';
   }
   $('sceneTitle').textContent = scene.title;
-  $('sceneText').textContent = personalizeNarrative(scene, scene.text || state.sceneText || '');
+  setSceneText(personalizeNarrative(scene, scene.text || state.sceneText || ''));
   $('promptText').textContent = 'WHAT DO YOU DO?';
   $('regionValue').textContent = region;
   $('anomalyValue').textContent = anomaly;
@@ -1478,7 +1469,7 @@ function choose(index) {
   const radiationResult = state.health > 0 ? resolveRadiationThreshold() : {status: 'death'};
   const currentScene = state.route[state.scenario];
   const choiceResult = personalizeNarrative(currentScene, choice[5]) + riskNote;
-  $('sceneText').textContent = randomEvent ? `${choiceResult}\n\n${randomEvent[0]}\n${randomEvent[1]}` : choiceResult;
+  setSceneText(randomEvent ? `${choiceResult}\n\n${randomEvent[0]}\n${randomEvent[1]}` : choiceResult);
   $('promptText').textContent = randomEvent ? 'EVENT INTERRUPTS THE ROAD...' : 'THE ROAD CONTINUES...';
   $('choices').innerHTML = '';
   renderStats();
@@ -1521,21 +1512,6 @@ function showEnding(reached365 = false, death = null) {
   $('storyPanel').classList.toggle('outcome--win', survived);
   $('logLine').textContent = survived ? 'RUN COMPLETE // HAVEN REACHED' : 'RUN COMPLETE // SIGNAL LOST';
   $('statusMessage').textContent = survived ? 'FIELD NOTE // CLEAN WATER. A SAFE ROOM. YOU ARE HOME.' : 'FIELD NOTE // HEALTH REACHED ZERO. THE RUN IS OVER.';
-}
-
-function restart() {
-  if (typeof confirm === 'function' && !confirm('Restart the run? Current progress will be lost.')) return;
-  if (currentUser) {
-    // clear save for this user
-    const key = getUserSaveKey();
-    localStorage.removeItem(key);
-    const accs = getAccounts();
-    if (accs[currentUser]) accs[currentUser].save = null;
-    saveAccounts(accs);
-  }
-  state = defaultState();
-  $('startScreen').hidden = false;
-  showLogin();
 }
 
 function toggleSound() {
@@ -1582,9 +1558,28 @@ function toggleSound() {
 
 function toggleTutorial(visible) {
   const panel = $('tutorialPanel');
-  if (visible && !panel.open) panel.showModal();
-  else if (!visible && panel.open) panel.close();
+  if (!panel) return;
+  if (visible === true || (!panel.open && visible !== false)) {
+    panel.showModal();
+  } else if (panel.open) {
+    panel.close();
+  }
   $('tutorialButton').setAttribute('aria-expanded', String(panel.open));
+}
+
+function toggleMature() {
+  state.matureContent = !state.matureContent;
+  const btn = $('matureButton');
+  if (btn) {
+    btn.textContent = `MATURE TEXT: ${state.matureContent ? 'ON' : 'OFF'}`;
+    btn.setAttribute('aria-pressed', String(state.matureContent));
+  }
+  if (state.started && $('sceneText')) {
+    // Re-render current scene to apply mature filter
+    const currentScenario = state.scenario;
+    renderScenario();
+    state.scenario = currentScenario; // restore
+  }
 }
 
 function formatRations(value) { return String(value); }
@@ -1602,73 +1597,111 @@ function showDecisionAftermath(before) {
   const panel = $('decisionAftermath'); panel.textContent = notes.join(' '); panel.hidden = !notes.length;
 }
 
-// === NEW ACCOUNT / LOGIN SYSTEM ===
+// === FIREBASE AUTH INTEGRATION (replaces previous fake localStorage auth) ===
+// Uses window.AfterlightAuth from auth.js (onAuthStateChanged driven flow)
+
 function showLogin() {
-  if ($('loginForm')) $('loginForm').hidden = false;
-  if ($('createForm')) $('createForm').hidden = true;
-  if ($('gameSetup')) $('gameSetup').hidden = true;
+  const loading = $('authLoading');
+  const loginF = $('loginForm');
+  const createF = $('createForm');
+  const setup = $('gameSetup');
+  if (loading) loading.hidden = true;
+  if (loginF) loginF.hidden = false;
+  if (createF) createF.hidden = true;
+  if (setup) setup.hidden = true;
 }
+
 function showCreate() {
-  if ($('loginForm')) $('loginForm').hidden = true;
-  if ($('createForm')) $('createForm').hidden = false;
-  if ($('gameSetup')) $('gameSetup').hidden = true;
+  const loginF = $('loginForm');
+  const createF = $('createForm');
+  const setup = $('gameSetup');
+  if (loginF) loginF.hidden = true;
+  if (createF) createF.hidden = false;
+  if (setup) setup.hidden = true;
 }
+
 function showGameSetup() {
-  if ($('accountSection')) $('accountSection').hidden = true;
-  if ($('gameSetup')) $('gameSetup').hidden = false;
+  const account = $('accountSection');
+  const setup = $('gameSetup');
+  const loading = $('authLoading');
+  if (loading) loading.hidden = true;
+  if (account) account.hidden = true;
+  if (setup) setup.hidden = false;
   renderStartingDifficulty();
   renderStartingBackground();
 }
 
-function handleLogin() {
-  const user = $('loginUser').value;
-  const pass = $('loginPass').value;
-  if (loginAccount(user, pass)) {
-    const loaded = loadGame();
-    if (loaded) state = loaded;
-    if (state.started && state.day > 0) {
-      // auto resume if saved run in progress
-      $('startScreen').hidden = true;
-      renderDifficultyButtons();
-      if (!state.audio) toggleSound();
-      renderScenario();
-      renderStats();
-      renderWorldState();
-    } else {
-      showGameSetup();
-    }
-  } else {
-    alert('Login failed. Check username/password.');
+// Real Firebase handlers (errors shown user-friendly)
+async function handleLogin() {
+  const userEl = $('loginUser');
+  const passEl = $('loginPass');
+  const username = (userEl ? userEl.value : '').trim();
+  const pass = passEl ? passEl.value : '';
+  if (!username || !pass) {
+    alert('Username and password required.');
+    return;
+  }
+  if (pass.length < 4) {
+    alert('Password must be at least 4 characters.');
+    return;
+  }
+  let sanitized = username.toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (!sanitized) sanitized = 'user' + Date.now().toString(36).slice(-6);
+  const email = sanitized + '@afterlight.local';
+  try {
+    await window.AfterlightAuth.login(email, pass);
+    // onAuthStateChanged will drive the UI transition / load
+  } catch (err) {
+    alert(getAuthErrorMessage(err));
   }
 }
 
-function handleCreate() {
-  const user = $('createUser').value;
-  const p1 = $('createPass').value;
-  const p2 = $('createPass2').value;
-  if (!user || !p1) { alert('Username and password required.'); return; }
+async function handleCreate() {
+  const userEl = $('createUser');
+  const p1El = $('createPass');
+  const p2El = $('createPass2');
+  const username = (userEl ? userEl.value : '').trim();
+  const p1 = p1El ? p1El.value : '';
+  const p2 = p2El ? p2El.value : '';
+  if (!username || !p1) { alert('Username and password required.'); return; }
+  if (p1.length < 4) { alert('Password must be at least 4 characters.'); return; }
   if (p1 !== p2) { alert('Passwords do not match.'); return; }
-  if (createAccount(user, p1)) {
-    showGameSetup();
-  } else {
-    alert('Account creation failed (username taken?).');
+  let sanitized = username.toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (!sanitized) sanitized = 'user' + Date.now().toString(36).slice(-6);
+  const email = sanitized + '@afterlight.local';
+  try {
+    await window.AfterlightAuth.createAccount(email, p1);
+    // onAuth will transition
+  } catch (err) {
+    alert(getAuthErrorMessage(err));
   }
 }
 
-function handleGuest() {
-  currentUser = null;
-  state = defaultState();
-  showGameSetup();
+async function handleGuest() {
+  try {
+    await window.AfterlightAuth.loginGuest();
+    // onAuth handles entry to game/setup
+  } catch (err) {
+    alert(getAuthErrorMessage(err));
+  }
 }
 
-// Wire account UI (safe if elements exist)
+function getAuthErrorMessage(err) {
+  const code = (err && err.code) || '';
+  if (code.includes('email-already-in-use')) return 'An account with this username already exists.';
+  if (code.includes('weak-password')) return 'Password must be at least 4 characters.';
+  if (code.includes('invalid-email')) return 'Please enter a valid username.';
+  if (code.includes('user-not-found') || code.includes('wrong-password') || code.includes('invalid-credential')) return 'Invalid username or password.';
+  if (code.includes('too-many-requests')) return 'Too many attempts. Try again later.';
+  if (code.includes('operation-not-allowed')) return 'Guest or email sign-in not enabled. Go to Firebase Console > Authentication > Sign-in method and enable both Email/Password and Anonymous.';
+  return 'Authentication failed. ' + (err && err.message ? err.message : 'Please try again.');
+}
+
+// Wire main buttons (switches use inline onclick preserved for the forms)
 if ($('loginBtn')) $('loginBtn').addEventListener('click', handleLogin);
 if ($('createBtn')) $('createBtn').addEventListener('click', handleCreate);
-if ($('showCreate')) $('showCreate').addEventListener('click', (e) => { e.preventDefault(); showCreate(); });
-if ($('showLogin')) $('showLogin').addEventListener('click', (e) => { e.preventDefault(); showLogin(); });
-if ($('playGuest')) $('playGuest').addEventListener('click', (e) => { e.preventDefault(); handleGuest(); });
 
-// Start game from setup
+// Start game from setup (unchanged flow)
 if ($('startGameBtn')) $('startGameBtn').addEventListener('click', () => {
   const name = $('survivorName').value.trim();
   if (!name) { $('survivorName').focus(); return; }
@@ -1706,8 +1739,114 @@ if ($('startGameBtn')) $('startGameBtn').addEventListener('click', () => {
   renderWorldState();
 });
 
-showLogin(); // default to login screen
-// end account system
+// Firebase auth state drives the entire login / resume flow
+// This prevents flashing the login UI while a session is being restored.
+if (window.AfterlightAuth && typeof window.AfterlightAuth.onAuthStateChanged === 'function') {
+  window.AfterlightAuth.onAuthStateChanged((user) => {
+    const start = $('startScreen');
+    const account = $('accountSection');
+    const loading = $('authLoading');
+    const loginF = $('loginForm');
+    const createF = $('createForm');
+    const logoutBtn = $('logoutButton');
+
+    if (loading) loading.hidden = true;
+
+    if (user) {
+      // Authenticated (email or anonymous guest) - do not show login forms
+      if (loginF) loginF.hidden = true;
+      if (createF) createF.hidden = true;
+      if (account) account.hidden = true;
+
+      if (logoutBtn) {
+        logoutBtn.style.display = '';
+        logoutBtn.onclick = async () => {
+          try {
+            await window.AfterlightAuth.logout();
+            // onAuthStateChanged(null) will handle showing login UI
+          } catch (e) { console.warn(e); }
+        };
+      }
+      const statusEl = $('userStatus');
+      if (statusEl) {
+        const disp = window.AfterlightAuth ? window.AfterlightAuth.getUserDisplay() : '';
+        statusEl.textContent = window.AfterlightAuth && window.AfterlightAuth.isGuest() ? 'GUEST' : (disp || '');
+        statusEl.style.display = '';
+      }
+
+      const loaded = loadGame();
+      if (loaded) state = loaded;
+
+      if (state.started && state.day > 0) {
+        if (start) start.hidden = true;
+        renderDifficultyButtons();
+        if (!state.audio) toggleSound();
+        renderScenario();
+        renderStats();
+        renderWorldState();
+      } else {
+        if (start) start.hidden = false;
+        showGameSetup();
+      }
+    } else {
+      // No user - show login UI. Ensure start screen visible.
+      if (start) start.hidden = false;
+      if (account) account.hidden = false;
+      if (loginF) loginF.hidden = false;
+      if (createF) createF.hidden = true;
+      const setup = $('gameSetup');
+      if (setup) setup.hidden = true;
+
+      if (logoutBtn) logoutBtn.style.display = 'none';
+      const statusEl = $('userStatus');
+      if (statusEl) statusEl.style.display = 'none';
+    }
+  });
+} else {
+  // Fallback if auth module not present (dev)
+  if ($('startScreen')) $('startScreen').hidden = false;
+  showLogin();
+}
+
+// Wire restart button (was missing listener)
+if ($('restartButton')) $('restartButton').addEventListener('click', restart);
+
+// Wire upper GUI buttons
+if ($('inventoryButton')) $('inventoryButton').addEventListener('click', () => toggleInventory());
+if ($('tutorialButton')) $('tutorialButton').addEventListener('click', () => toggleTutorial());
+if ($('soundButton')) $('soundButton').addEventListener('click', toggleSound);
+if ($('matureButton')) $('matureButton').addEventListener('click', toggleMature);
+if ($('closeInventory')) $('closeInventory').addEventListener('click', () => toggleInventory(false));
+if ($('closeTutorial')) $('closeTutorial').addEventListener('click', () => toggleTutorial(false));
+
+// Initialize mature button state
+const initMatureBtn = $('matureButton');
+if (initMatureBtn) {
+  initMatureBtn.textContent = `MATURE TEXT: ${state.matureContent ? 'ON' : 'OFF'}`;
+  initMatureBtn.setAttribute('aria-pressed', String(state.matureContent));
+}
+
+// Initialize other top buttons if needed
+const initSoundBtn = $('soundButton');
+if (initSoundBtn) {
+  initSoundBtn.textContent = state.audio ? 'SOUND: ON' : 'SOUND: OFF';
+  initSoundBtn.setAttribute('aria-pressed', String(!!state.audio));
+}
+
+// Update restart to keep auth but clear current run save + return to setup
+// (logout is separate and does not clear saves)
+function restart() {
+  if (typeof confirm === 'function' && !confirm('Restart the run? Current progress will be lost.')) return;
+  const pid = getCurrentPlayerId();
+  if (pid) {
+    localStorage.removeItem(getUserSaveKey());
+  }
+  state = defaultState();
+  $('startScreen').hidden = false;
+  showGameSetup(); // stay logged in, just new run setup
+}
+
+// end auth system
 
 // Initial setup - do not call old setDifficulty here as account flow handles it
 // setDifficulty is called inside the game start flow when appropriate
